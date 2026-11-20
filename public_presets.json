@@ -13,7 +13,6 @@
    "Waist": 22086,
    "Legs": 22092,
    "Feet": 22087,
-   "Finger 1": 284716,
    "Finger 2": 284715,
    "Trinket 1": 272437,
    "Libram": 272435
@@ -23,7 +22,6 @@
    "Back": "Agility",
    "Chest": "Greater Stats",
    "Wrists": "Superior Strength",
-   "Main Hand": "Grand Inquisitor (2H)",
    "Hands": "Superior Strength",
    "Legs": "Lesser Arcane Amalgamation: +8 Strength",
    "Feet": "Greater Agility"
@@ -42,7 +40,6 @@
    "Waist": 272404,
    "Legs": 15062,
    "Feet": 287033,
-   "Finger 1": 284716,
    "Trinket 1": 272437,
    "Trinket 2": 11815,
    "Main Hand": 19323,
@@ -54,7 +51,6 @@
    "Chest": "Forceful Rugged Armor Kit",
    "Legs": "Lesser Arcane Amalgamation: +8 Strength",
    "Feet": "Greater Agility",
-   "Main Hand": "Grand Inquisitor (2H)",
    "Back": "Agility",
    "Wrists": "Superior Strength",
    "Hands": "Superior Strength"
@@ -85,7 +81,6 @@
    "Back": "Agility",
    "Chest": "Greater Stats",
    "Wrists": "Greater Spellpower",
-   "Main Hand": "Grand Arcanist (2H)",
    "Hands": "Holy Power",
    "Legs": "Arcanum of Focus: +8 Healing",
    "Feet": "Mystic Rugged Armor Kit"
