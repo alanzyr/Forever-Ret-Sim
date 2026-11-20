@@ -1,0 +1,95 @@
+{
+ "Arcanite Reaper, Soulforge": {
+  "gear": {
+   "Main Hand": 12784,
+   "Head": 12640,
+   "Neck": 15411,
+   "Shoulders": 22093,
+   "Back": 272414,
+   "Chest": 11726,
+   "Wrists": 22088,
+   "Trinket 2": 11815,
+   "Hands": 22090,
+   "Waist": 22086,
+   "Legs": 22092,
+   "Feet": 22087,
+   "Finger 1": 284716,
+   "Finger 2": 284715,
+   "Trinket 1": 272437,
+   "Libram": 272435
+  },
+  "enchants": {
+   "Head": "Lesser Arcane Amalgamation: +8 Strength",
+   "Back": "Agility",
+   "Chest": "Greater Stats",
+   "Wrists": "Superior Strength",
+   "Main Hand": "Grand Inquisitor (2H)",
+   "Hands": "Superior Strength",
+   "Legs": "Lesser Arcane Amalgamation: +8 Strength",
+   "Feet": "Greater Agility"
+  },
+  "mode": "socSor"
+ },
+ "The Unstoppable Force": {
+  "gear": {
+   "Head": 12640,
+   "Neck": 15411,
+   "Shoulders": 12927,
+   "Back": 272414,
+   "Chest": 252484,
+   "Wrists": 12936,
+   "Hands": 15063,
+   "Waist": 272404,
+   "Legs": 15062,
+   "Feet": 287033,
+   "Finger 1": 284716,
+   "Trinket 1": 272437,
+   "Trinket 2": 11815,
+   "Main Hand": 19323,
+   "Libram": 272435,
+   "Finger 2": 284715
+  },
+  "enchants": {
+   "Head": "Lesser Arcane Amalgamation: +8 Strength",
+   "Chest": "Forceful Rugged Armor Kit",
+   "Legs": "Lesser Arcane Amalgamation: +8 Strength",
+   "Feet": "Greater Agility",
+   "Main Hand": "Grand Inquisitor (2H)",
+   "Back": "Agility",
+   "Wrists": "Superior Strength",
+   "Hands": "Superior Strength"
+  },
+  "mode": "socSor"
+ },
+ "Blade of Hanna, spell power": {
+  "gear": {
+   "Head": 250599,
+   "Neck": 22403,
+   "Back": 272411,
+   "Shoulders": 22093,
+   "Chest": 252483,
+   "Wrists": 22088,
+   "Main Hand": 2801,
+   "Hands": 22090,
+   "Waist": 22086,
+   "Legs": 252486,
+   "Feet": 11822,
+   "Finger 1": 22433,
+   "Finger 2": 12543,
+   "Trinket 1": 22268,
+   "Trinket 2": 272437,
+   "Libram": 272435
+  },
+  "enchants": {
+   "Head": "Arcanum of Focus: +8 Healing",
+   "Back": "Agility",
+   "Chest": "Greater Stats",
+   "Wrists": "Greater Spellpower",
+   "Main Hand": "Grand Arcanist (2H)",
+   "Hands": "Holy Power",
+   "Legs": "Arcanum of Focus: +8 Healing",
+   "Feet": "Mystic Rugged Armor Kit"
+  },
+  "mode": "sorFury"
+ }
+}
