@@ -2354,6 +2354,13 @@ function ieBuild(cats){
   o.retSim = own;
   return o;
 }
+// What a settings code carries: the groups the addon has settings for (buffs and debuffs, consumables, encounter, rotation).
+const IE_ADDON_GROUPS = ['buff', 'cons', 'tgt', 'rot'];
+function ieSettingsCode(){
+  const raw = readRaw(), settings = {};
+  for (const f of FIELDS) if (IE_ADDON_GROUPS.includes(f.g)) settings[f.k] = raw[f.k];
+  return 'RSS1:' + btoa(JSON.stringify({v:1, settings}));
+}
 function iePretty(o){
   // one line per value like the wowsims export, but number arrays stay on one line
   return JSON.stringify(o, (k, v) => Array.isArray(v) && v.length && v.every(x => typeof x === 'number') ? '\u0001' + JSON.stringify(v) : v, 2).replace(/"\\u0001(\[[^"]*\])"/g, '$1');
@@ -2378,6 +2385,14 @@ async function ieParse(text){
   text = String(text || '').trim();
   if (!text) throw new Error('Paste the text first, or upload a file.');
   if (/^https?:\/\//i.test(text)) throw new Error(/wowhead/i.test(text) ? 'Wowhead gear planner links are not supported. Use a JSON export, the addon text or a Sixty Upgrades export.' : 'Links are not supported. Paste a JSON export, a share code, the addon text or a Sixty Upgrades export.');
+  if (/^RSS1:/.test(text)){
+    // a settings code of the Forever Ret Sim addon (or one made here under Export > Addon settings)
+    let j; try { j = JSON.parse(atob(text.slice(5).replace(/\s+/g, ''))); } catch (e) { throw new Error('That settings code is incomplete or damaged. Copy all of it and try again.'); }
+    if (!j || typeof j !== 'object' || !j.settings || typeof j.settings !== 'object') throw new Error('That settings code holds no settings.');
+    const keep = {};
+    for (const f of FIELDS) if (IE_ADDON_GROUPS.includes(f.g) && f.k in j.settings) keep[f.k] = j.settings[f.k];
+    return {kind:'Addon settings', items:null, talStr:null, talNames:null, race:null, own:{settings:keep}, ws:{}};
+  }
   if (/^RSA1:/.test(text)){
     // the Forever Ret Sim addon (/rsim export): items by the game's inventory slot number, with the enchant's id
     let j; try { j = JSON.parse(atob(text.slice(5).replace(/\s+/g, ''))); } catch (e) { throw new Error('That addon code is incomplete or damaged. Make it again in the game with /rsim export and copy all of it.'); }
@@ -2511,10 +2526,11 @@ function ieApply(r){
   const dlg = $('#ie-dlg'), ta = $('#ie-text'), msg = $('#ie-msg'), menu = $('#ie-menu'), catsBox = $('#ie-cats');
   const KINDS = {
     impJson:{t:'JSON Import', imp:1, d:'Import a setup from JSON: one made with Export here, or one from the wowsims JSON export (gear, enchants, talents, race, buffs, debuffs, consumables and encounter are read; rotation and anything else wowsims-specific is not). Share codes work here too. Paste the text below or upload the file, then click Import. Only what the text holds is changed.'},
-    impAddon:{t:'Addon Import', imp:1, d:'Import your character from the Forever Ret Sim addon. In the game, type /rsim export (or press Export in the addon\u2019s window), copy the code and paste it below, then click Import. This reads gear, enchants, race, talents and rotation. It does not change buffs, debuffs, consumables or other settings. The text of the WoWSims Exporter addon works here too.'},
+    impAddon:{t:'Addon Import', imp:1, d:'Import your character from the Forever Ret Sim addon. In the game, type /rsim export (or press Export in the addon\u2019s window), copy the code and paste it below, then click Import. This reads gear, enchants, race, talents and rotation. It does not change buffs, debuffs, consumables or other settings. A settings code from the addon (/rsim settings) is read here as well, and so is the text of the WoWSims Exporter addon.'},
     imp60u:{t:'Sixty Upgrades Import', imp:1, d:'Import from Sixty Upgrades. This reads gear, enchants, race and talents. It does not change buffs, debuffs, consumables or other settings. Paste the output of the site\u2019s export option below and click Import.'},
     expJson:{t:'JSON Export', d:'The gear, talents, race, buffs, consumables and encounter are written in the wowsims layout, so the text can also be pasted into the wowsims JSON import. This sim\u2019s own settings travel in the "retSim" block.'},
     expCode:{t:'Share Code Export', d:'The same content as the JSON export, packed into one short line. Paste it into Import \u2192 JSON to load it.'},
+    expAddon:{t:'Addon Settings Export', plain:1, d:'Your raid buffs and debuffs, consumables, encounter and rotation as a code for the Forever Ret Sim addon. In the game, press Import in the addon\u2019s window (or type /rsim import), paste the code and press Import. Gear and talents are not in it: the addon reads those from your character.'},
   };
   let kind = 'impJson';
   const cats = () => Object.fromEntries(IE_CATS.map(c => [c[0], $('#ie-cat-' + c[0]).checked]));
@@ -2522,6 +2538,7 @@ function ieApply(r){
   const say = (t, err) => { msg.textContent = t || ''; msg.classList.toggle('err', !!err); };
   async function fill(){
     if (KINDS[kind].imp) return;
+    if (kind === 'expAddon'){ ta.value = ieSettingsCode(); say(''); return; }
     const o = ieBuild(cats());
     ta.value = kind === 'expCode' ? await iePack(JSON.stringify(o)) : iePretty(o);
     say('');
@@ -2529,13 +2546,13 @@ function ieApply(r){
   async function open(k){
     kind = k; const K = KINDS[k];
     $('#ie-title').textContent = K.t; $('#ie-desc').textContent = K.d;
-    catsBox.hidden = !!K.imp; $('#ie-upload').hidden = !K.imp; $('#ie-go').hidden = !K.imp; $('#ie-copy').hidden = !!K.imp;
-    ta.readOnly = !K.imp; ta.value = ''; ta.rows = k === 'expCode' ? 6 : 14; ta.style.whiteSpace = k === 'expCode' ? 'pre-wrap' : ''; ta.style.wordBreak = k === 'expCode' ? 'break-all' : '';
+    catsBox.hidden = !!K.imp || !!K.plain; $('#ie-upload').hidden = !K.imp; $('#ie-go').hidden = !K.imp; $('#ie-copy').hidden = !!K.imp;
+    ta.readOnly = !K.imp; ta.value = ''; { const line = k === 'expCode' || k === 'expAddon'; ta.rows = line ? 6 : 14; ta.style.whiteSpace = line ? 'pre-wrap' : ''; ta.style.wordBreak = line ? 'break-all' : ''; }
     say('');
     await fill();
     dlg.showModal(); ta.focus(); if (!K.imp){ ta.select(); ta.scrollTop = 0; }
   }
-  const MENUS = {'ie-imp':[['impJson', 'JSON'], ['impAddon', 'Addon'], ['imp60u', '60U']], 'ie-exp':[['expJson', 'JSON'], ['expCode', 'Share code']]};
+  const MENUS = {'ie-imp':[['impJson', 'JSON'], ['impAddon', 'Addon'], ['imp60u', '60U']], 'ie-exp':[['expJson', 'JSON'], ['expCode', 'Share code'], ['expAddon', 'Addon settings']]};
   let openFor = null;
   const closeMenu = focusBack => { if (!openFor) return; const b = $('#' + openFor); b.setAttribute('aria-expanded', 'false'); menu.hidden = true; openFor = null; if (focusBack) b.focus(); };
   for (const id in MENUS) $('#' + id).addEventListener('click', e => {

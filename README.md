@@ -72,6 +72,10 @@ Vercel works as an alternative: import the repository and it uses `vercel.json`.
 - **Import > Addon** reads the export code of the in-game addon ([PaladinSIMAddon](https://github.com/alanzyr/PaladinSIMAddon),
   `/rsim export`): `RSA1:` + base64 of JSON with items by the game's inventory slot number (`id`, `enchant`), the talent
   string, race and rotation. Enchants are matched by their id (`e` in `ENCHANTS`).
+- **Settings codes** go both ways between the website and the addon: `RSS1:` + base64 of JSON `{ v: 1, settings: {...} }`
+  with the fields of the groups `buff`, `cons`, `tgt` and `rot` under their own keys. Export > Addon settings writes
+  one; Import reads one. Gear, talents and the Player fields are never in it. A new field in one of those groups is
+  picked up by the addon when its data is generated again (`node gen-ret-data.js` in the addon's `tools`).
 
 ## Not in this repository
 
