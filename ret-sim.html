@@ -2368,6 +2368,15 @@ async function ieParse(text){
   text = String(text || '').trim();
   if (!text) throw new Error('Paste the text first, or upload a file.');
   if (/^https?:\/\//i.test(text)) throw new Error(/wowhead/i.test(text) ? 'Wowhead gear planner links are not supported. Use a JSON export, the addon text or a Sixty Upgrades export.' : 'Links are not supported. Paste a JSON export, a share code, the addon text or a Sixty Upgrades export.');
+  if (/^RSA1:/.test(text)){
+    // the Forever Ret Sim addon (/rsim export): items by the game's inventory slot number, with the enchant's id
+    let j; try { j = JSON.parse(atob(text.slice(5).replace(/\s+/g, ''))); } catch (e) { throw new Error('That addon code is incomplete or damaged. Make it again in the game with /rsim export and copy all of it.'); }
+    if (!j || typeof j !== 'object' || !j.items || typeof j.items !== 'object') throw new Error('That addon code holds no items. Make it again in the game with /rsim export.');
+    const INV = {1:0, 2:1, 3:2, 15:3, 5:4, 9:5, 10:6, 6:7, 7:8, 8:9, 11:10, 12:11, 13:12, 14:13, 16:14, 17:15, 18:16};
+    const r = {kind:'Forever Ret Sim addon', items:new Array(17).fill(null), talStr:j.talents || null, talNames:null, race:j.race || null, own:null, ws:{}, mode:j.mode || null};
+    for (const k in j.items){ const i = INV[k], x = j.items[k]; if (i !== undefined && x && x.id) r.items[i] = {id:+x.id, effect:+x.enchant || 0}; }
+    return r;
+  }
   if (/^RS[01]:/.test(text)) text = await ieUnpack(text.replace(/\s+/g, ''));
   let j; try { j = JSON.parse(text); } catch (e) { throw new Error('That text is not valid JSON, so nothing was imported.'); }
   if (!j || typeof j !== 'object' || Array.isArray(j)) throw new Error('That JSON does not look like a character export.');
@@ -2447,6 +2456,7 @@ function ieApply(r){
   else if (r.talNames) tal = Object.fromEntries(Object.entries(r.talNames).filter(e => tinfo[e[0]] && e[1] > 0).map(e => [e[0], Math.min(tinfo[e[0]].max, e[1])]));
   else if (r.talStr){ tal = talDecode(r.talStr); if (!tal) skipped.push('The talent string "' + String(r.talStr).slice(0, 60) + '" could not be read, so talents were left unchanged.'); }
   if (tal && Object.keys(tal).length){ talents = tal; try { localStorage.setItem(TAL_LS, JSON.stringify(talents)); } catch (e) {} renderTrees(); done.push('talents ' + [0, 1, 2].map(treePts).join('/')); }
+  if (r.mode && ieSet('mode', r.mode)) done.push('rotation ' + (ROT_INFO[r.mode] ? ROT_INFO[r.mode][0] : r.mode));
   // this sim's own settings
   let nOwn = 0; const ownSet = (r.own && r.own.settings && typeof r.own.settings === 'object') ? r.own.settings : {};
   for (const k in ownSet) if (k !== 'race' && ieSet(k, ownSet[k])) nOwn++;
@@ -2491,7 +2501,7 @@ function ieApply(r){
   const dlg = $('#ie-dlg'), ta = $('#ie-text'), msg = $('#ie-msg'), menu = $('#ie-menu'), catsBox = $('#ie-cats');
   const KINDS = {
     impJson:{t:'JSON Import', imp:1, d:'Import a setup from JSON: one made with Export here, or one from the wowsims JSON export (gear, enchants, talents, race, buffs, debuffs, consumables and encounter are read; rotation and anything else wowsims-specific is not). Share codes work here too. Paste the text below or upload the file, then click Import. Only what the text holds is changed.'},
-    impAddon:{t:'Addon Import', imp:1, d:'Import from the WoWSims Exporter in-game addon. This reads gear, enchants, race and talents. It does not change buffs, debuffs, consumables or other settings. Paste the addon\u2019s output below and click Import.'},
+    impAddon:{t:'Addon Import', imp:1, d:'Import your character from the Forever Ret Sim addon. In the game, type /rsim export (or press Export in the addon\u2019s window), copy the code and paste it below, then click Import. This reads gear, enchants, race, talents and rotation. It does not change buffs, debuffs, consumables or other settings. The text of the WoWSims Exporter addon works here too.'},
     imp60u:{t:'Sixty Upgrades Import', imp:1, d:'Import from Sixty Upgrades. This reads gear, enchants, race and talents. It does not change buffs, debuffs, consumables or other settings. Paste the output of the site\u2019s export option below and click Import.'},
     expJson:{t:'JSON Export', d:'The gear, talents, race, buffs, consumables and encounter are written in the wowsims layout, so the text can also be pasted into the wowsims JSON import. This sim\u2019s own settings travel in the "retSim" block.'},
     expCode:{t:'Share Code Export', d:'The same content as the JSON export, packed into one short line. Paste it into Import \u2192 JSON to load it.'},

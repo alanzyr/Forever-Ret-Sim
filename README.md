@@ -69,6 +69,9 @@ Vercel works as an alternative: import the repository and it uses `vercel.json`.
 - **Gear sets** store item ids, enchant names and the rotation selected when saved (`_ench`, `_mode`).
 - **Import/Export** uses the wowsims JSON layout plus a `retSim` block for this sim's own settings. Share codes are the
   same JSON, deflated and base64url-encoded with the prefix `RS1:`.
+- **Import > Addon** reads the export code of the in-game addon ([PaladinSIMAddon](https://github.com/alanzyr/PaladinSIMAddon),
+  `/rsim export`): `RSA1:` + base64 of JSON with items by the game's inventory slot number (`id`, `enchant`), the talent
+  string, race and rotation. Enchants are matched by their id (`e` in `ENCHANTS`).
 
 ## Not in this repository
 
