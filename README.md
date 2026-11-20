@@ -9,30 +9,33 @@ The whole simulator is one HTML file that runs in the browser. There is no serve
 |---|---|
 | `ret-sim.html` | The working version. Interface, simulation engine, item and enchant data and icons, all in one file. This is the file to edit. |
 | `public_presets.json` | Gear sets shown as fixed "Preset Gear Sets" buttons in the public version. |
-| `build.js` | Builds the public site: `node build.js` writes `public/index.html`. |
-| `vercel.json` | Tells Vercel to run the build and serve the `public` folder. |
+| `build.js` | Builds the public site: `node build.js docs` writes `docs/index.html`. |
+| `docs/index.html` | The built public site. GitHub Pages serves this folder. Rebuild and commit it with every change. |
+| `vercel.json` | Only used if the site is hosted on Vercel: runs the build and serves the `public` folder. |
 
-`public/` is build output and is not committed.
+`public/` (the Vercel build output) is not committed. `docs/` is.
 
 ## Build and run
 
 ```
-node build.js
+node build.js docs
 ```
 
-Open `public/index.html` in a browser. Needs Node 18 or later, nothing to install.
+Open `docs/index.html` in a browser. Needs Node 18 or later, nothing to install.
 
 The public version differs from `ret-sim.html` in two ways, both applied by `build.js`:
 
 - The developer features are removed: the "Copy setup (for troubleshooting)" button and the Assumptions tab.
 - The presets from `public_presets.json` are added.
 
-Do not edit `public/index.html` by hand. Change `ret-sim.html` or `public_presets.json` and build again.
+Do not edit `docs/index.html` by hand. Change `ret-sim.html` or `public_presets.json`, run `node build.js docs` and commit both.
 
 ## Hosting
 
-Import the repository in Vercel. `vercel.json` already sets the build command and output folder, so every push to the
-main branch rebuilds and publishes the site.
+The site is served by GitHub Pages from the `docs` folder of the main branch (repository Settings > Pages > Deploy from a
+branch > main, /docs). A push that changes `docs/index.html` updates the site within a minute or two.
+
+Vercel works as an alternative: import the repository and it uses `vercel.json`.
 
 ## How `ret-sim.html` is organised
 

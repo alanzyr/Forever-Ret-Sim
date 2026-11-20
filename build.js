@@ -1,5 +1,6 @@
 // Builds the public site from ret-sim.html.
-//   node build.js   ->  public/index.html
+//   node build.js        ->  public/index.html   (Vercel runs this)
+//   node build.js docs   ->  docs/index.html     (committed; GitHub Pages serves the docs folder)
 //
 // ret-sim.html is the working version: the whole simulator in one file (interface, engine, item and enchant data, icons).
 // The public version is the same file with two changes applied when the page loads:
@@ -10,7 +11,8 @@
 const fs = require('fs');
 const path = require('path');
 const src = path.join(__dirname, 'ret-sim.html');
-const outDir = path.join(__dirname, 'public'), out = path.join(outDir, 'index.html');
+// output folder: "public" by default (Vercel), or the one named on the command line, e.g. "node build.js docs" for GitHub Pages
+const outDir = path.join(__dirname, process.argv[2] || 'public'), out = path.join(outDir, 'index.html');
 let s = fs.readFileSync(src, 'utf8').replace(/\r\n/g, '\n');
 // presets: {name: {gear:{slot:itemId}, enchants:{slot:enchantName}, mode:rotationKey}}
 let presets = {};
