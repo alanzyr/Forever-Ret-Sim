@@ -62,6 +62,15 @@ Vercel works as an alternative: import the repository and it uses `vercel.json`.
 - **Calibration.** With every buff and debuff at its default, results are fitted to the wowsims Forever sim (two setups,
   within about 3%). A change to the engine should leave the default result unchanged unless that is the intent. The armor
   debuffs share one calibrated total (`armorDebuff`, 2693) in proportion to their tooltip values.
+- **Procs are played in the fight, not averaged.** `PROCS` (in the engine block) holds every effect of an item, weapon
+  enchant (`e` + enchant id) or set bonus (`s` + set id + `:` + pieces) that the fight plays: "Chance on hit" weapons,
+  trinkets and other slots, Crusader and the "Grand" enchants, set procs. Each entry says its rate and where the rate
+  comes from (measured on Forever, fitted from Forever logs, Classic value, game data); the rates and which hits roll
+  come from the measurements collected in the wowsims Forever project (`weapon_procs.go`, `docs/evidence`), read
+  24 Nov 2026. An effect without a known rate uses "Procs without a known rate" under Assumptions. Effects that do no
+  damage carry `no` with the reason and are shown as not simulated. Not played: on-use effects, bonuses against a
+  creature type, "when struck" effects. `procList()` turns the worn effects into what `simulate()` plays; the addon has
+  the same table and the same code (`tools/check-ret-engine.js` in the addon repository compares them fight by fight).
 - **Layout follows wowsims.com/forever**: settings in columns, icon pickers for consumables, round buttons for saved sets,
   encounters and rotations. Interface text is English and short.
 - **Random seed per run.** Each press of Simulate, Stat Weights or Compare Rotations draws a new seed; comparisons within
