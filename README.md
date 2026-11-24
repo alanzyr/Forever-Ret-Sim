@@ -68,7 +68,8 @@ Vercel works as an alternative: import the repository and it uses `vercel.json`.
   comes from (measured on Forever, fitted from Forever logs, Classic value, game data); the rates and which hits roll
   come from the measurements collected in the wowsims Forever project (`weapon_procs.go`, `docs/evidence`), read
   24 Nov 2026. An effect without a known rate uses "Procs without a known rate" under Assumptions. Effects that do no
-  damage carry `no` with the reason and are shown as not simulated. Not played: on-use effects, bonuses against a
+  damage carry `no` with the reason and are shown as not simulated. On-use effects (keys `u` + item id) and the combat potion are used at the pull and again whenever they are
+  ready, with the shared on-use cooldown between trinkets. Not played: summons, bonuses against a
   creature type, "when struck" effects. `procList()` turns the worn effects into what `simulate()` plays; the addon has
   the same table and the same code (`tools/check-ret-engine.js` in the addon repository compares them fight by fight).
 - **Layout follows wowsims.com/forever**: settings in columns, icon pickers for consumables, round buttons for saved sets,

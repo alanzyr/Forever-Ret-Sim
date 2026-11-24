@@ -885,15 +885,42 @@ const PROCS = {
   's181:5': {pct: 5, r: 'game data', on: 'cast cons judge sealcast', mana: 200},
   's182:5': {pct: 5, r: 'game data', on: 'cast cons judge sealcast', mana: 200},
   's506:3': {pct: 20, r: 'game data', on: 'judge', mana: 100},
+  // ----- on-use effects: used at the pull and again whenever they are ready (use: cd cooldown s, g category, lock: seconds
+  // the others of the category are locked, need: only when that much mana is missing) -----
+  u14554: {use: {cd: 900, g: 't', lock: 30}, buff: {ap: 100, dur: 30}, tx: '+100 Attack Power'},
+  u280071: {use: {cd: 300, g: 't', lock: 30}, buff: {agi: 33, dur: 30}, tx: '+33 Agility', x: 'The bonus with an elemental nearby is not counted'},
+  u270226: {use: {cd: 300, g: 't', lock: 15}, buff: {all: 16, dur: 15}, tx: '+16 all stats', x: 'The doubling in Forest and Grassland areas is not counted'},
+  u13965: {use: {cd: 300, g: 't', lock: 20}, buff: {crit: 5, dur: 20}, tx: '+5% crit', x: 'The doubling against Orcs and Ogres is not counted'},
+  u272438: {use: {cd: 360, g: 't', lock: 20}, buff: {crit: 5, dur: 20, tillCrit: true}, tx: '+5% crit until your next crit', x: 'It ends on your first crit that is not a damage-over-time tick'},
+  u13968: {use: {cd: 300, g: 't', lock: 20}, buff: {spellHit: 7, dur: 20}, tx: '+7% spell hit'},
+  u22678: {use: {cd: 60, g: 't', lock: 20}, buff: {dur: 20}, stack: {sp: 40, max: 5}, tx: '+40 spell damage per Holy Strike, seal hit, Judgement or spell (up to 5)'},
+  u11832: {use: {cd: 360, g: 'm', lock: 10}, buff: {cost: 150, dur: 10}, tx: '−150 mana on every cast'},
+  u11905: {use: {cd: 180, g: 't', lock: 10}, dd: [113, 187, 'phys'], x: 'The 0.5 s cast is not counted'},
+  u8348: {use: {cd: 300, g: 't', lock: 10}, dd: [286, 376, 'fire'], dot: [33, 2, 4, 'fire']},
+  u274759: {use: {cd: 300, g: 't', lock: 15}, dd: [607, 607, 'physical'], x: 'Split between the targets, so the total is the same; the bonus against Plants is not counted'},
+  u13171: {use: {cd: 90, g: 't', lock: 10}, dd: [210, 210, 'fire'], aoe: 99, x: 'The bonus against Plants is not counted'},
+  u14134: {use: {cd: 120}, dot: [25, 5, 3, 'fire'], aoe: 99, sure: true},
+  u10455: {use: {cd: 600, g: 't', lock: 20}, dot: [140, 2, 10, 'nature'], aoe: 99, sure: true, x: 'Counted as if the targets stay in the cloud; the bonus against Trolls is not counted'},
+  u274760: {use: {cd: 300, g: 't', lock: 20}, after: [6, 8], afterDur: 20, dd: [467, 467, 'fire'], x: 'It lands after 6 to 8 of your hits within 20 s, or not at all'},
+  u20512: {use: {cd: 300, need: 361}, mana: 340},
+  u20525: {use: {cd: 180, need: 400}, mana: 400, x: 'Given at once instead of over 10 s'},
+  u11819: {use: {cd: 900, g: 'm', lock: 10, need: 630}, mana: 630, x: 'Given at once instead of over 10 s'},
+  u18371: {use: {cd: 420, g: 'm', lock: 10, need: 1250}, mana: 1250, x: 'Given at once instead of over 10 s; the −60 Intellect afterwards is not counted'},
+  u13382: {no: 'the cannon is not played (the number of shots is not known)'},
+  u7734: {no: 'its effects are not known'},
+  u14022: {no: 'the servants are not played (their damage is not known)'},
+  u14023: {no: 'the servants are not played (their damage is not known)'},
 };
 // What the fight plays for the worn items' effects. defs: entries of PROCS, each with the name n to show.
 // on: the events that roll it (default: every melee hit). alt: one of several outcomes, picked by weight w.
 const PROC_EV = 'white wf hs seal joc';
+// combat potions: drunk at the pull and again when the potion cooldown is over
+const COMBAT_POTS = {frenzy: {n: 'Major Frenzy Potion', use: {cd: 120}, buff: {ap: 80, dur: 30}, tx: '+80 Attack Power'}, spellblast: {n: 'Major Spellblasting Potion', use: {cd: 120}, buff: {sp: 47, dur: 30}, tx: '+47 spell damage'}};
 function procList(defs, ppm){
   const out = [];
   for (const d of defs){
     const base = {ppm: d.ppm || ppm, ev: {}};
-    for (const e of (d.on || PROC_EV).split(' ')) base.ev[e] = true;
+    if (!d.use) for (const e of (d.on || PROC_EV).split(' ')) base.ev[e] = true;
     if (base.ev.white && !d.on) base.ev.chain = true;
     if (!d.alt){ out.push(Object.assign({}, d, base)); continue; }
     const lead = out.length, pick = []; let w = 0;
@@ -932,12 +959,14 @@ function simulate(c, mode, seed, wantLog){
   const AU = {};
   const aura = (n, t, until, old) => { const a = AU[n] || (AU[n] = {n, up:0, count:0}); a.count++; a.up += Math.max(0, Math.min(until, T) - Math.max(t, Math.min(old, T))); };
   // "Chance on hit" effects of the worn items: up = buff or armour debuff runs until, left/next = damage over time, late = delayed hit
-  const PR = (c.procs || []).map(p => ({p, up:-1, left:0, next:Infinity, late:Infinity, cd:-1, n:0, upT:0}));
+  const PR = (c.procs || []).concat(COMBAT_POTS[c.combatPot] ? procList([COMBAT_POTS[c.combatPot]], 1) : []).map(p => ({p, up:-1, left:0, next:Infinity, late:Infinity, cd:-1, n:0, upT:0, useAt: p.use ? 0 : Infinity, need: 0, needEnd: Infinity, stk: 0}));
+  const useLock = {};
   const pBuff = (t, k) => { let a = 0; for (const x of PR) if (t < x.up && x.p.buff && x.p.buff[k]) a += x.p.buff[k]; return a; };
   // a buff to all stats counts as Blade of Hanna's does: Attack Power from Strength, crit from Agility, spell damage from Intellect
   const pAP = t => PR.length ? (pBuff(t, 'str') + pBuff(t, 'all')) * c.strAP + pBuff(t, 'ap') : 0;
-  const pCrit = t => PR.length ? pBuff(t, 'crit') + pBuff(t, 'all') * c.formCrit / 20 : 0;
-  const pSP = t => PR.length ? pBuff(t, 'sp') + pBuff(t, 'all') * c.formSP / 20 : 0;
+  const pCrit = t => PR.length ? pBuff(t, 'crit') + (pBuff(t, 'all') + pBuff(t, 'agi')) * c.formCrit / 20 : 0;
+  const pStack = t => { let a = 0; for (const x of PR) if (x.p.stack && t < x.up) a += x.stk * x.p.stack.sp; return a; };
+  const pSP = t => PR.length ? pBuff(t, 'sp') + pBuff(t, 'all') * c.formSP / 20 + pStack(t) : 0;
   let inExtra = false; const CAST_EV = {cast:true, cons:true, how:true, judge:true, sealcast:true};
   const armorAt = t => {
     let a = 0; for (const x of PR) if (t < x.up && x.p.armor) a += x.p.armor[0];
@@ -946,7 +975,8 @@ function simulate(c, mode, seed, wantLog){
   };
 
   const veng = t => 1 + (t < vExp ? vSt * c.vengPct * c.vengRank / 100 : 0);
-  const onCrit = t => { if (c.vengRank) aura('Vengeance', t, t + 30, vExp); vSt = Math.min(c.vengStacks, (t < vExp ? vSt : 0) + 1); vExp = t + 30; };
+  const onCrit = t => { for (const x of PR) if (x.p.buff && x.p.buff.tillCrit && t < x.up){ x.upT -= Math.max(0, Math.min(x.up, T) - t); x.up = t; }
+    if (c.vengRank) aura('Vengeance', t, t + 30, vExp); vSt = Math.min(c.vengStacks, (t < vExp ? vSt : 0) + 1); vExp = t + 30; };
   const spNow = t => sp0 + (t < jotcExp ? c.jotc : 0) + (t < formUntil ? c.formSP : 0) + pSP(t);
   const holy = t => veng(t) * c.twoH * (t < consUntil ? 1 + c.consecratedGround / 100 : 1);
   const wpn = () => c.wMin + R() * (c.wMax - c.wMin) + (c.ap + (nowT < formUntil ? c.formAP : 0) + pAP(curT)) / 14 * c.wSpeed;
@@ -960,8 +990,9 @@ function simulate(c, mode, seed, wantLog){
   }
   function rollWhite(){ const r = R()*100; let a = c.miss; if (r < a) return 'miss'; a += c.dodge; if (r < a) return 'dodge'; a += c.glance; if (r < a) return 'glance'; a += c.crit + (nowT < formUntil ? c.formCrit : 0) + pCrit(curT); if (r < a) return 'crit'; return 'hit'; }
   function rollMelee(dodgeable){ const r = R()*100; let a = c.miss; if (r < a) return 'miss'; if (dodgeable){ a += c.dodge; if (r < a) return 'dodge'; } a += c.crit + pCrit(curT); if (r < a) return 'crit'; return 'hit'; }
-  function rollSpell(){ if (R()*100 < c.spellMiss) return 'miss'; return R()*100 < c.spellCrit + pCrit(curT) ? 'crit' : 'hit'; }
+  function rollSpell(){ if (R()*100 < (PR.length ? Math.max(1, c.spellMiss - pBuff(curT, 'spellHit')) : c.spellMiss)) return 'miss'; return R()*100 < c.spellCrit + pCrit(curT) ? 'crit' : 'hit'; }
   function pay(key, cost){
+    if (PR.length) cost = Math.max(0, cost - pBuff(curT, 'cost'));
     if (mana >= cost){ mana -= cost; manaUsed += cost; blk[key] = false; return true; }
     if (!blk[key]){ blk[key] = true; blocked++; }
     return false;
@@ -1129,9 +1160,11 @@ function simulate(c, mode, seed, wantLog){
   function pFire(x, t, ev){
     const p = x.p;
     x.n++;
-    if (ux) ux.push([t, p.n, p.n + ' proc', p.tx ? p.tx + ' for ' + (p.buff ? p.buff.dur : p.armor[1]) + ' s' : p.mana ? p.mana + ' mana' : p.extra ? 'an extra attack' : '']);
+    if (ux) ux.push([t, p.n, p.n + (p.use ? ' use' : ' proc'), p.tx ? p.tx + ' for ' + (p.buff ? p.buff.dur : p.armor[1]) + ' s' : p.mana ? p.mana + ' mana' : p.extra ? 'an extra attack' : '']);
     const melee = p.dd ? p.dd[2] === 'phys' : !!p.dot && (p.dot[3] === 'bleed' || p.dot[3] === 'phys');
     let landed = true;
+    if (p.after && ev === 'use'){ x.need = Math.floor(rnd(p.after[0], p.after[1] + 1)); x.needEnd = t + (p.afterDur || Infinity); return; }
+    if (p.stack) x.stk = 0;
     if (p.dd){
       let d = rnd(p.dd[0], p.dd[1]);
       if (p.exec && t >= T * (1 - p.exec[0] / 100)) d *= p.exec[1];
@@ -1156,6 +1189,10 @@ function simulate(c, mode, seed, wantLog){
   function itemProcs(t, ev){
     for (let i = 0; i < PR.length; i++){
       const x = PR[i], p = x.p;
+      if (ev !== 'joc' && ev !== 'chain' && ev !== 'sealcast'){
+        if (x.need > 0){ if (t > x.needEnd) x.need = 0; else if (--x.need === 0){ x.n--; pFire(x, t, 'after'); } }
+        if (p.stack && t < x.up && ev !== 'white' && ev !== 'wf' && x.stk < p.stack.max) x.stk++;
+      }
       if (p.follow || !p.ev[ev] || t < x.cd || (p.extra && inExtra)) continue;
       if (R() >= (p.pct ? p.pct / 100 : p.ppm * (CAST_EV[ev] ? 1.5 : c.wSpeed) / 60)) continue;
       if (p.icd) x.cd = t + p.icd;
@@ -1231,6 +1268,15 @@ function simulate(c, mode, seed, wantLog){
   for (let guard = 0; guard < 200000; guard++){
     evT = t; curT = t;
     if (PR.length) procTicks(t);
+    for (const x of PR){
+      const u = x.p.use;
+      if (x.need > 0 && t > x.needEnd) x.need = 0;
+      if (!u || t < x.useAt - 1e-9 || t < (useLock[u.g || 0] || 0) - 1e-9 || x.need > 0) continue;
+      if (u.need && mana > c.mana - u.need) continue;
+      if (u.gcd){ if (t < gcd) continue; gcd = t + c.gcd + c.latency; }
+      x.useAt = t + u.cd; if (u.lock) useLock[u.g || 0] = t + u.lock;
+      pFire(x, t, 'use');
+    }
     while (nextSwing <= t + 1e-9){ swing(nextSwing); nextSwing += c.wSpeed / (1 + (c.haste || 0) / 100) / (PR.length ? 1 + pBuff(nextSwing, 'haste') / 100 : 1); }
     curT = t;
     while (consTicks.length && consTicks[0] <= t + 1e-9) consTick(consTicks.shift());
@@ -1243,11 +1289,11 @@ function simulate(c, mode, seed, wantLog){
     if (mn) mn.push([t, mana]);
     let n = Math.min(nextSwing, nextMana, consTicks.length ? consTicks[0] : Infinity);
     for (const x of [gcd, cdJ, cdHS, cdExo, cdHoW, cdCons, cdShock, execAt]) if (x > t + 1e-9 && x < n) n = x;
-    for (const x of PR){ if (x.next < n) n = x.next; if (x.late < n) n = x.late; }
+    for (const x of PR){ if (x.next < n) n = x.next; if (x.late < n) n = x.late; if (x.p.use){ const a = Math.max(x.useAt, useLock[x.p.use.g || 0] || 0); if (a > t + 1e-9 && a < n) n = a; } }
     if (n >= T) break;
     t = n;
   }
-  return {dps: total / T, S, mana, echoes, swings, blocked, manaUsed, log, ev, mn, ux, procs: PR.map(x => ({n: x.p.n, tx: x.p.tx, mana: x.p.mana, extra: x.p.extra, count: x.n, up: x.upT / T})), auras: Object.values(AU).map(a => ({n: a.n, count: a.count, up: a.up / T}))};
+  return {dps: total / T, S, mana, echoes, swings, blocked, manaUsed, log, ev, mn, ux, procs: PR.map(x => ({n: x.p.n, tx: x.p.tx, mana: x.p.mana, extra: x.p.extra, use: !!x.p.use, count: x.n, up: x.upT / T})), auras: Object.values(AU).map(a => ({n: a.n, count: a.count, up: a.up / T}))};
 }
 /* ===== ENGINE END ===== */
 
@@ -1380,7 +1426,7 @@ async function runMany(v, modeKey, iters, onProg){
     for (let j = i; j < Math.min(iters, i + chunk); j++){
       const r = simulate(c, m, v.seed * 7919 + j * 104729, false);
       dps.push(r.dps); mana += r.mana; echoes += r.echoes; blocked += r.blocked; manaUsed += r.manaUsed;
-      r.procs.forEach((p, q) => { const a = procs[q] || (procs[q] = {n: p.n, tx: p.tx, mana: p.mana, extra: p.extra, count: 0, up: 0}); a.count += p.count; a.up += p.up; });
+      r.procs.forEach((p, q) => { const a = procs[q] || (procs[q] = {n: p.n, tx: p.tx, mana: p.mana, extra: p.extra, use: p.use, count: 0, up: 0}); a.count += p.count; a.up += p.up; });
       for (const p of r.auras){ const a = auras[p.n] || (auras[p.n] = {count: 0, up: 0}); a.count += p.count; a.up += p.up; }
       for (const k in r.S){ const a = S[k] || (S[k] = {dmg:0,n:0,crit:0,miss:0}); const b = r.S[k]; a.dmg += b.dmg; a.n += b.n; a.crit += b.crit; a.miss += b.miss; }
     }
@@ -1389,7 +1435,7 @@ async function runMany(v, modeKey, iters, onProg){
   }
   const n = dps.length, mean = dps.reduce((a, b) => a + b, 0) / n;
   const sd = Math.sqrt(dps.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, n - 1));
-  return {mode:m, c, dps, mean, sd, n, S, mana:mana / n, echoes:echoes / n, blocked:blocked / n, manaUsed:manaUsed / n, procs: procs.map(p => ({n: p.n, tx: p.tx, mana: p.mana, extra: p.extra, count: p.count / n, up: p.up / n})), auras: Object.fromEntries(Object.entries(auras).map(([k, a]) => [k, {count: a.count / n, up: a.up / n}]))};
+  return {mode:m, c, dps, mean, sd, n, S, mana:mana / n, echoes:echoes / n, blocked:blocked / n, manaUsed:manaUsed / n, procs: procs.map(p => ({n: p.n, tx: p.tx, mana: p.mana, extra: p.extra, use: p.use, count: p.count / n, up: p.up / n})), auras: Object.fromEntries(Object.entries(auras).map(([k, a]) => [k, {count: a.count / n, up: a.up / n}]))};
 }
 
 function setBusy(b){ for (const id of ['run','cmp','sw']) $('#' + id).disabled = b; }
@@ -1499,7 +1545,7 @@ function render(res, v){
     ['Mana left at end', fmt(res.mana)],
     ['Casts blocked by mana', fmt(res.blocked, 1)],
   ];
-  for (const p of res.procs || []) tiles.push([p.n + ' procs', fmt(p.count / fight * 60, 1) + ' per min' + (p.tx ? ' · ' + p.tx + ' ' + fmt(p.up * 100, 1) + ' % of the fight' : '')]);
+  for (const p of res.procs || []) tiles.push([p.n + (p.use ? ' uses' : ' procs'), (p.use ? fmt(p.count, 1) + ' per fight' : fmt(p.count / fight * 60, 1) + ' per min') + (p.tx ? ' · ' + p.tx + ' ' + fmt(p.up * 100, 1) + ' % of the fight' : '')]);
   const tw = $('#tiles'); tw.innerHTML = '';
   for (const [k, val] of tiles){ const d = document.createElement('div'); d.className = 'tile'; const a = document.createElement('div'); a.className = 'k'; a.textContent = k; const b = document.createElement('div'); b.className = 'v'; b.textContent = val; d.append(a, b); tw.appendChild(d); }
 
@@ -1580,7 +1626,7 @@ function sourceTip(name, c){
     // an item, enchant or set bonus: what the sim plays for it
     const base = k.replace(/: .*$/, '');
     let d = null;
-    for (const g of Object.values(gear)) if (g.n === base && PROCS[g.id]) d = PROCS[g.id];
+    for (const g of Object.values(gear)) if (g.n === base){ const u = PROCS['u' + g.id]; d = PROCS[g.id] || (u && !u.no ? u : null) || d; }
     for (const e of Object.values(ench)) if (e.n.replace(/^Enchant: /, '') === base && PROCS['e' + e.e]) d = PROCS['e' + e.e];
     const m = base.match(/^(.*) \((\d+)\)$/);
     if (m) for (const id in SETS) if (SETS[id].n === m[1] && PROCS['s' + id + ':' + m[2]]) d = PROCS['s' + id + ':' + m[2]];
@@ -1621,7 +1667,7 @@ function renderBuffs(res, v){
       if (!v[f.k] || v[f.k] === 'none') continue;
       const o = f.o.find(q => q[0] === v[f.k]); if (!o) continue;
       const [nm, fx] = uiSplit(o[1]);
-      if (f.k === 'combatPot'){ const n = 1 + Math.floor(Math.max(0, fight - 30) / 120); cons.push([uiIcon(f.k + ':' + o[0]), nm, fx + ', used on cooldown from the pull (counted as its average)', pct(Math.min(1, n * 30 / Math.max(1, fight))), per(n)]); }
+      if (f.k === 'combatPot'){ const p = (res.procs || []).find(q => q.n === nm) || {up: 0, count: 0}; cons.push([uiIcon(f.k + ':' + o[0]), nm, fx + ', drunk at the pull and every 2 min', pct(p.up), per(p.count)]); }
       else cons.push([uiIcon(f.k + ':' + o[0]), nm, fx, '100 %', '–']);
     } else if (f.t === 'chk'){
       if (f.k === 'potions' || f.k === 'runes'){ const on = f.k === 'potions' ? v.potions : v.runes; if (on) cons.push([uiIcon(f.k), uiSplit(f.l)[0], 'mana when it is missing', '–', per(a(f.k === 'potions' ? 'Major Mana Potion' : 'Dark Rune').count)]); continue; }
@@ -1637,7 +1683,7 @@ function renderBuffs(res, v){
   if (au['Perfected Form']) got.push([abIcon('Perfected Form'), 'Perfected Form', '+20 all stats for 20 s (Blade of Hanna)', pct(a('Perfected Form').up), per(a('Perfected Form').count)]);
   if (au['Consecrated Ground']) got.push([abIcon('Consecration'), 'Consecrated Ground', '+' + v.consecratedGround + '% Holy damage while Consecration burns', pct(a('Consecrated Ground').up), per(a('Consecrated Ground').count)]);
   for (const p of res.procs || []){
-    if (p.tx && /on the boss/.test(p.tx)) continue;
+    if (p.tx && /on the boss/.test(p.tx) || COMBAT_POTS.frenzy.n === p.n || COMBAT_POTS.spellblast.n === p.n) continue;
     if (p.tx) got.push([abIcon(p.n), p.n, p.tx, pct(p.up), per(p.count)]);
     else if (p.mana) got.push([abIcon(p.n), p.n, p.mana + ' mana', '–', per(p.count)]);
     else if (p.extra) got.push([abIcon(p.n), p.n, 'an extra attack', '–', per(p.count)]);
@@ -1645,7 +1691,7 @@ function renderBuffs(res, v){
   section('Gained in the fight', got);
   // worn, with an effect to use that the sim does not play
   const use = [];
-  for (const k of Object.keys(gear).sort()){ const it = gear[k]; for (const l of it.fx || []) if (/^Use:/.test(l)) use.push([ITEM_ICONS[it.ic] || '', it.n, l.replace(/^Use: /, ''), 'not simulated', '–', true]); }
+  for (const k of Object.keys(gear).sort()){ const it = gear[k]; for (const l of it.fx || []) if (/^Use:/.test(l) && !(PROCS['u' + it.id] && !PROCS['u' + it.id].no)) use.push([ITEM_ICONS[it.ic] || '', it.n, l.replace(/^Use: /, ''), 'not simulated', '–', true]); }
   section('On-use effects you wear', use);
   if (!tb.children.length){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 4; td.className = 'empty'; td.textContent = 'No buffs are on.'; tr.appendChild(td); tb.appendChild(tr); }
 }
@@ -1735,7 +1781,7 @@ function itemTip(it, slot){
     add(/^(Equip|Use|Chance on hit):/.test(l) ? 'tt-eq' : /^"/.test(l) ? 'tt-flavor' : '', l);
   }
   if (e && !enchShown) add('tt-eq', e.x);
-  { const pn = procNote(PROCS[it.id]); if (pn) add(pn.startsWith('Not') ? 'tt-dim' : '', pn); }
+  for (const pn of [procNote(PROCS[it.id]), procNote(PROCS['u' + it.id])]) if (pn) add(pn.startsWith('Not') ? 'tt-dim' : '', pn);
   setTip(it, add);
   add('tt-src', it.src);
 }
@@ -1812,7 +1858,7 @@ function renderTimeline(){
   const rows = Object.values(by).sort((a, b) => b.dmg - a.dmg);
   const ub = {}; for (const u of ux){ const r = ub[u[2]] || (ub[u[2]] = {n:u[2], ux:true, ev:[]}); r.ev.push(u); }
   for (const k of ['Seal cast', 'Unsealed Wrath release', 'Mana potion or rune']) if (ub[k]) rows.push(ub[k]);
-  for (const k in ub) if (k.endsWith(' proc')) rows.push(ub[k]);
+  for (const k in ub) if (/ (proc|use)$/.test(k)) rows.push(ub[k]);
   const H1 = 96, H2 = 56, RH = icons ? 24 : 20, gap = 26, top = 16;
   const y1 = top, y2 = y1 + H1 + gap, y3 = y2 + H2 + gap, H = y3 + rows.length * RH + 24;
   const svg = el('svg', {viewBox:'0 0 ' + W + ' ' + H, width:W, height:H, role:'img', 'aria-label':'Timeline of one simulated fight: rolling DPS, mana and each damage source, from ' + Math.round(t0) + ' to ' + Math.round(t1) + ' seconds'});
@@ -1872,7 +1918,7 @@ function renderTimeline(){
     const rd = roll[Math.max(0, Math.min(roll.length - 1, Math.round(t) - 1))];
     let m = mn.length ? mn[0][1] : 0; for (const q of mn){ if (q[0] > t) break; m = q[1]; }
     const near = ev.filter(e => Math.abs(e[0] - t) <= tol).slice(0, 6).map(e => e[1] + (e[3] === 'miss' || e[3] === 'dodge' ? ' ' + e[3] : ' ' + fmt(e[2]) + (e[3] === 'crit' ? ' crit' : '')))
-      .concat(ux.filter(u => Math.abs(u[0] - t) <= tol).slice(0, 3).map(u => u[2] === 'Seal cast' ? 'cast ' + u[1] : u[2] === 'Unsealed Wrath release' ? 'Unsealed Wrath releases ' + u[3] : u[2].endsWith(' proc') ? u[2] + (u[3] ? ': ' + u[3] : '') : u[1]));
+      .concat(ux.filter(u => Math.abs(u[0] - t) <= tol).slice(0, 3).map(u => u[2] === 'Seal cast' ? 'cast ' + u[1] : u[2] === 'Unsealed Wrath release' ? 'Unsealed Wrath releases ' + u[3] : / (proc|use)$/.test(u[2]) ? u[2] + (u[3] ? ': ' + u[3] : '') : u[1]));
     box.dataset.tip = t.toFixed(1) + ' s|DPS (10 s) ' + fmt(rd ? rd[1] : 0) + ' · Mana ' + fmt(Math.min(manaMax, m)) + (near.length ? ' · ' + near.join(', ') : '');
   };
   svg.addEventListener('pointerdown', e => { if (e.button) return; drag = {t:at(e.clientX), x:e.clientX}; try { svg.setPointerCapture(e.pointerId); } catch (err) {} });
@@ -2141,14 +2187,14 @@ function gearTotals(){
 // the effects of the worn items, enchants and set bonuses that change the fight, in a fixed order
 function gearProcs(v){
   const defs = [], seen = new Set();
-  for (const k of Object.keys(gear).sort()){ const it = gear[k], p = PROCS[it.id]; if (p && !p.no && !seen.has(it.id)){ seen.add(it.id); defs.push(Object.assign({n: it.n}, p)); } }
+  for (const k of Object.keys(gear).sort()){ const it = gear[k]; if (seen.has(it.id)) continue; seen.add(it.id); for (const p of [PROCS[it.id], PROCS['u' + it.id]]) if (p && !p.no) defs.push(Object.assign({n: it.n}, p)); }
   for (const k of Object.keys(ench).sort()){ const p = PROCS['e' + ench[k].e]; if (p && !p.no) defs.push(Object.assign({n: ench[k].n.replace(/^Enchant: /, '')}, p)); }
   const c = setCounts();
   for (const id of Object.keys(c).sort()){ const S = SETS[id]; if (!S) continue; for (const [t] of S.b){ const p = PROCS['s' + id + ':' + t]; if (p && !p.no && c[id] >= t) defs.push(Object.assign({n: S.n + ' (' + t + ')'}, p)); } }
   return procList(defs, v.procPPM);
 }
 // what the sim does with an effect, for the tooltips
-const PROC_SCHOOL = {phys:'Physical', bleed:'bleed', fire:'Fire', shadow:'Shadow', nature:'Nature', arcane:'Arcane', frost:'Frost'};
+const PROC_SCHOOL = {phys:'Physical', physical:'Physical', bleed:'bleed', fire:'Fire', shadow:'Shadow', nature:'Nature', arcane:'Arcane', frost:'Frost'};
 const PROC_EVENT = {white:'white hits', wf:'Windfury', hs:'Holy Strike', seal:'seal hits', joc:'Judgement of Command', cast:'Exorcism and Holy Shock', cons:'Consecration', how:'Hammer of Wrath', judge:'Judgement', sealcast:'seal casts'};
 function procEffect(p){
   const parts = [];
@@ -2169,6 +2215,7 @@ function procNote(p){
   const rate = p.pct ? (p.pct === 100 ? 'On every hit' : p.pct + '% chance' + (p.icd ? ', at most once every ' + p.icd + ' s' : '')) + ' (' + p.r + ')'
     : p.ppm ? p.ppm + (p.ppm === 1 ? ' proc' : ' procs') + ' per minute (' + p.r + ')' : 'No rate is known: the rate under Assumptions is used';
   const ev = (p.on || PROC_EV).split(' ').map(e => PROC_EVENT[e]);
+  if (p.use) return 'Counts in the sim: ' + what + '. Used at the pull' + (p.use.need ? ' once ' + p.use.need + ' mana is missing' : '') + ' and again every ' + (p.use.cd >= 120 ? p.use.cd / 60 + ' min' : p.use.cd + ' s') + (p.use.lock ? '; your other on-use trinket waits ' + p.use.lock + ' s' : '') + (p.x ? '. ' + p.x : '') + '.';
   return 'Counts in the sim: ' + what + '. ' + rate + ', rolled on ' + (p.on ? ev.join(', ') : 'every melee hit') + (p.x ? '. ' + p.x : '') + '.';
 }
 function applyGear(v){
@@ -2365,9 +2412,7 @@ function applyConsumables(v){
   else if (v.oil === 'dense'){ v.wMin += 8; v.wMax += 8; }
   if (v.food === 'dumplings') v.str += 20; else if (v.food === 'fishap') v.apGear += 40; else if (v.food === 'fishsp') v.sp += 28;
   if (v.combatPot !== 'none'){
-    // 30 s buff on the shared 2 min potion cooldown, used from the pull: applied as its average over the fight
-    const up = Math.min(1, (1 + Math.floor(Math.max(0, v.fight - 30) / 120)) * 30 / Math.max(1, v.fight));
-    if (v.combatPot === 'frenzy') v.apGear += 80 * up; else v.sp += 47 * up;
+    // the potion itself is played in the fight (COMBAT_POTS); it shares the cooldown with mana potions
     v.potions = false;
   }
 }
