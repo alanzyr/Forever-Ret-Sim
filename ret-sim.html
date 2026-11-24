@@ -32,6 +32,11 @@ button:disabled{opacity:.55;cursor:progress}
 button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .progress{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
+.progstat{min-height:16px;margin-top:5px;font-size:11px;line-height:16px;color:var(--muted);font-variant-numeric:tabular-nums}
+.progstat.busy{color:var(--fg)}
+.progstat.busy::before{content:'';display:inline-block;width:8px;height:8px;margin-right:6px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;vertical-align:-1px;animation:progspin .7s linear infinite}
+@keyframes progspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.progstat.busy::before{animation:none}}
 .result{border:1px solid var(--line);border-radius:4px;background:var(--panel);padding:8px;text-align:center}
 .big{font-size:24px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--accent)}
 .big small{font-size:12px;font-weight:600;color:var(--muted);margin-left:6px}
@@ -444,6 +449,7 @@ ol.prio li{margin:5px 0;max-width:80ch}
       <button id="cmp">Compare Rotations</button>
     </div>
     <div class="progress" aria-hidden="true"><i id="prog"></i></div>
+    <div class="progstat" id="progstat" role="status" aria-live="polite"></div>
     <div class="result">
       <div class="big" id="dps">–<small>DPS</small></div>
       <div class="ci" id="ci">Press Simulate.</div>
@@ -958,7 +964,7 @@ function simulate(c, mode, seed, wantLog){
   let echoes = 0, swings = 0, blocked = 0, manaUsed = 0; const blk = {};
   // uptime of what is gained in the fight, for the Buffs list (counted only: it changes nothing in the fight)
   const AU = {};
-  const aura = (n, t, until, old) => { const a = AU[n] || (AU[n] = {n, up:0, count:0}); a.count++; a.up += Math.max(0, Math.min(until, T) - Math.max(t, Math.min(old, T))); };
+  const aura = (n, t, until, old, refresh) => { const a = AU[n] || (AU[n] = {n, up:0, count:0}); if (!refresh) a.count++; a.up += Math.max(0, Math.min(until, T) - Math.max(t, Math.min(old, T))); };
   // "Chance on hit" effects of the worn items: up = buff or armour debuff runs until, left/next = damage over time, late = delayed hit
   const PR = (c.procs || []).concat(COMBAT_POTS[c.combatPot] ? procList([COMBAT_POTS[c.combatPot]], 1) : []).map(p => ({p, up:-1, left:0, next:Infinity, late:Infinity, cd:-1, n:0, upT:0, useAt: p.use ? 0 : Infinity, need: 0, needEnd: Infinity, stk: 0}));
   const useLock = {};
@@ -978,7 +984,8 @@ function simulate(c, mode, seed, wantLog){
   const veng = t => 1 + (t < vExp ? vSt * c.vengPct * c.vengRank / 100 : 0);
   const onCrit = t => { for (const x of PR) if (x.p.buff && x.p.buff.tillCrit && t < x.up){ x.upT -= Math.max(0, Math.min(x.up, T) - t); x.up = t; }
     if (c.vengRank) aura('Vengeance', t, t + 30, vExp); vSt = Math.min(c.vengStacks, (t < vExp ? vSt : 0) + 1); vExp = t + 30; };
-  const spNow = t => sp0 + (t < jotcExp ? c.jotc : 0) + (t < formUntil ? c.formSP : 0) + pSP(t);
+  const jotcVal = c.jotc + (c.jotcExt ? 0 : (c.jotcLibram || 0));   // your own Judgement of the Crusader carries your libram's bonus
+  const spNow = t => sp0 + (t < jotcExp ? jotcVal : 0) + (t < formUntil ? c.formSP : 0) + pSP(t);
   const holy = t => veng(t) * c.twoH * (t < consUntil ? 1 + c.consecratedGround / 100 : 1);
   const wpn = () => c.wMin + R() * (c.wMax - c.wMin) + (c.ap + (nowT < formUntil ? c.formAP : 0) + pAP(curT)) / 14 * c.wSpeed;
   const rnd = (a, b) => a + R() * (b - a);
@@ -1035,6 +1042,7 @@ function simulate(c, mode, seed, wantLog){
     if (res === 'glance') d *= c.glanceDmg / 100;
     if (res === 'crit') d *= 2;
     rec('Autoattack', d, res);
+    if (!c.jotcExt && t < jotcExp){ aura('Judgement of the Crusader', t, t + c.jotcDur, jotcExp, true); jotcExp = t + c.jotcDur; }   // a landed swing keeps your own Judgement up
     L(t, `Autoattack ${Math.round(d)}${resTxt(res)} [${SEAL[seal]}]`);
     if (res === 'crit') onCrit(t);
     if (c.hanna && ++formStacks >= 30){
@@ -1127,7 +1135,8 @@ function simulate(c, mode, seed, wantLog){
     let d = (wpn() + c.wfAP / 14 * c.wSpeed + (c.arthas ? 8 : 0)) * c.twoH * armorAt(t) * veng(t);
     if (cr) d *= 2;
     chili(t);
-    rec('Windfury Totem', d, cr ? 'crit' : 'hit'); L(t, `  ↳ Windfury attack ${Math.round(d)}${cr ? ' (crit)' : ''}`);
+    rec('Windfury Totem', d, cr ? 'crit' : 'hit');
+    if (!c.jotcExt && t < jotcExp){ aura('Judgement of the Crusader', t, t + c.jotcDur, jotcExp, true); jotcExp = t + c.jotcDur; }   // a landed swing keeps your own Judgement up L(t, `  ↳ Windfury attack ${Math.round(d)}${cr ? ' (crit)' : ''}`);
     if (cr) onCrit(t);
     itemProcs(t, 'wf');
   }
@@ -1220,7 +1229,7 @@ function simulate(c, mode, seed, wantLog){
     if (r === 'crit') d *= 2;
     rec('Holy Strike', d, r); L(t, `Holy Strike ${Math.round(d)}${resTxt(r)}`);
     if (r === 'crit') onCrit(t);
-    if (c.sacredArbiter && t < jotcExp && !c.jotcExt){ aura('Judgement of the Crusader', t, t + c.jotcDur, jotcExp); jotcExp = t + c.jotcDur; }
+    if (c.sacredArbiter && t < jotcExp && !c.jotcExt){ aura('Judgement of the Crusader', t, t + c.jotcDur, jotcExp, true); jotcExp = t + c.jotcDur; }
     if (seal !== 'crusader') sealEffect(seal, t, false);
     wf(t); chili(t); itemProcs(t, 'hs');
   }
@@ -1431,7 +1440,7 @@ async function runMany(v, modeKey, iters, onProg){
       for (const p of r.auras){ const a = auras[p.n] || (auras[p.n] = {count: 0, up: 0}); a.count += p.count; a.up += p.up; }
       for (const k in r.S){ const a = S[k] || (S[k] = {dmg:0,n:0,crit:0,miss:0}); const b = r.S[k]; a.dmg += b.dmg; a.n += b.n; a.crit += b.crit; a.miss += b.miss; }
     }
-    if (onProg) onProg(Math.min(1, (i + chunk) / iters));
+    if (onProg) onProg(Math.min(1, (i + chunk) / iters), Math.min(iters, i + chunk), iters);
     await new Promise(r => setTimeout(r, 0));
   }
   const n = dps.length, mean = dps.reduce((a, b) => a + b, 0) / n;
@@ -1441,6 +1450,11 @@ async function runMany(v, modeKey, iters, onProg){
 
 function setBusy(b){ for (const id of ['run','cmp','sw']) $('#' + id).disabled = b; }
 const prog = p => { $('#prog').style.width = (p * 100).toFixed(1) + '%'; };
+// the line under the progress bar: what is running (busy) or how the last run went
+const progStat = (t, busy) => { const e = $('#progstat'); e.textContent = t || ''; e.classList.toggle('busy', !!busy); };
+const progIters = (d, n) => fmt(d) + ' of ' + fmt(n) + ' iterations';
+const progDone = (what, t0) => { const sec = (performance.now() - t0) / 1000; progStat(what + ' in ' + fmt(sec, sec < 10 ? 1 : 0) + ' s'); };
+const progPaint = () => new Promise(r => setTimeout(r, 0));   // lets the browser draw the line before the work starts
 
 // Base stats per race for a level 60 paladin without gear (Classic values; Undead estimated from Forsaken racial modifiers).
 const RACE_BASE = {human:{str:105, int:70, crit:3.99, mana:2282}, dwarf:{str:107, int:69, crit:3.79, mana:2267}, undead:{str:104, int:68, crit:3.89, mana:2252}};
@@ -1522,9 +1536,13 @@ async function run(saved){
   const v = saved || readValues();
   if (!saved){ try { localStorage.setItem(LS + '-last', JSON.stringify(v)); } catch(e){} }
   lastSig = JSON.stringify(v);
-  const iters = Math.max(10, Math.round(v.iters));
-  const res = await runMany(v, v.mode, iters, prog);
+  const iters = Math.max(10, Math.round(v.iters)), t0 = performance.now();
+  const what = saved ? 'Loading your last result' : 'Simulating';
+  prog(0); progStat(what + ': ' + progIters(0, iters), true); await progPaint();
+  const res = await runMany(v, v.mode, iters, (p, d, n) => { prog(p); progStat(what + ': ' + progIters(d, n), true); });
+  progStat('Drawing the results…', true); await progPaint();
   render(res, v);
+  progDone(fmt(iters) + ' iterations', t0);
   renderRotation();
   setBusy(false);
 }
@@ -1610,7 +1628,7 @@ function sourceTip(name, c){
     'Seal of Fury': () => `${c.furyFlat} Holy damage on every swing plus ${p(c.furyCoef)} of your spell damage. It cannot be judged.`,
     'Judgement of Righteousness': () => `${r(c.jorMin, c.jorMax)} Holy damage plus ${p(c.jorCoef)} of your spell damage, every ${c.judgeCd - c.impJudge} s for ${Math.round(c.judgeCost * c.bened)} mana. A ranged attack: it can miss but not be dodged, and crits for double.`,
     'Judgement of Command': () => `${r(c.jocMin, c.jocMax)} Holy damage plus ${p(c.jocCoef)} of your spell damage, every ${c.judgeCd - c.impJudge} s for ${Math.round(c.judgeCost * c.bened)} mana. A melee attack: it can miss, be dodged and crit for double, and it rolls item procs twice.`,
-    'Judgement of the Crusader': () => `The opener. It deals no damage: the boss takes +${c.jotc} Holy damage from your spells and seals for ${c.jotcDur} s.`,
+    'Judgement of the Crusader': () => `The opener. It deals no damage: the boss takes +${c.jotc + (c.jotcExt ? 0 : (c.jotcLibram || 0))} Holy damage from your spells and seals for ${c.jotcDur} s, and your white hits keep it up.`,
     'Holy Strike': () => `${c.hsPct}% weapon damage plus ${r(c.hsMin, c.hsMax)} and ${p(c.hsCoef)} of your spell damage, as Holy. Every ${c.hsCd} s for ${Math.round(c.hsCost * c.bened)} mana. A melee attack that also triggers your seal.`,
     'Windfury Totem': () => `${c.wfChance}% chance on a hit for an extra white attack with +${c.wfAP} Attack Power. It cannot miss here and crits at your melee crit chance.`,
     'Consecration': () => `${c.consTotal} Holy damage over 8 s plus ${p(c.consCoef)} of your spell damage per tick, on up to 4 targets. Every ${c.consCd} s for ${Math.round(c.consCost * c.bened * c.conduit)} mana, cast when mana is above ${c.consMinPct}%. Each tick can miss or crit as a spell.`,
@@ -1661,7 +1679,7 @@ function renderBuffs(res, v){
     return k === 'manaTide' ? [uiIcon(k), nm, fx, '–', per(a('Mana Tide Totem').count)] : [uiIcon(k), nm, fx, '100 %', '–']; }));
   // on the target
   const tgt = DEBUFF_KEYS.filter(k => v[k]).map(k => { const [nm, fx] = uiSplit(F(k).l); return [uiIcon(k), nm, fx, '100 %', '–']; });
-  if (!v.jotcExt && au['Judgement of the Crusader']) tgt.push([abIcon('Judgement of the Crusader'), 'Judgement of the Crusader (yours)', '+' + v.jotc + ' Holy damage taken', pct(a('Judgement of the Crusader').up), per(a('Judgement of the Crusader').count)]);
+  if (!v.jotcExt && au['Judgement of the Crusader']) tgt.push([abIcon('Judgement of the Crusader'), 'Judgement of the Crusader (yours)', '+' + (v.jotc + (v.jotcLibram || 0)) + ' Holy damage taken' + (v.jotcLibram ? ' (Libram of Fervor)' : ''), pct(a('Judgement of the Crusader').up), per(a('Judgement of the Crusader').count)]);
   for (const p of res.procs || []) if (p.tx && /on the boss/.test(p.tx)) tgt.push([abIcon(p.n), p.n, p.tx, pct(p.up), per(p.count)]);
   section('On the target', tgt);
   // consumables
@@ -1720,9 +1738,10 @@ async function compare(){
   const v = readValues();
   const iters = Math.min(1500, Math.max(100, Math.round(v.iters)));
   const sel = resolveMode(v.mode, v.wSpeed).key;
-  const keys = Object.keys(MODES); const out = [];
+  const keys = Object.keys(MODES); const out = []; const t0 = performance.now();
+  prog(0); progStat('Comparing rotations…', true); await progPaint();
   for (let i = 0; i < keys.length; i++){
-    const r = await runMany(v, keys[i], iters, p => prog((i + p) / keys.length));
+    const r = await runMany(v, keys[i], iters, (p, d, n) => { prog((i + p) / keys.length); progStat('Rotation ' + (i + 1) + ' of ' + keys.length + ' (' + MODES[keys[i]].name + '): ' + progIters(d, n), true); });
     out.push({key: keys[i], name: MODES[keys[i]].name, mean: r.mean, ci: 1.96 * r.sd / Math.sqrt(r.n), blocked: r.blocked});
   }
   out.sort((a, b) => b.mean - a.mean);
@@ -1732,6 +1751,7 @@ async function compare(){
   const n = document.createElement('p'); n.className = 'note';
   n.textContent = `${fmt(iters)} iterations per rotation. Hover a bar for the confidence interval and the gap to the best rotation.`;
   $('#compare').appendChild(n);
+  progDone(keys.length + ' rotations, ' + fmt(iters) + ' iterations each', t0);
   setBusy(false);
 }
 
@@ -1743,13 +1763,15 @@ async function weights(){
     ['str','Strength',20], ['apGear','Attack Power',40], ['sp','Spell damage',20], ['int','Intellect',20],
     ['hit','Hit %',1], ['crit','Crit %',1], ['exp','Expertise %',1], ['wpn','Weapon damage (min+max)',10],
   ];
-  const total = STATS.length + 1; let done = 0;
-  const base = await runMany(v, v.mode, iters, p => prog((done + p) / total)); done++;
+  const total = STATS.length + 1; let done = 0; const t0 = performance.now();
+  const step = what => (p, d, n) => { prog((done + p) / total); progStat('Stat weights, run ' + (done + 1) + ' of ' + total + ' (' + what + '): ' + progIters(d, n), true); };
+  prog(0); progStat('Stat weights…', true); await progPaint();
+  const base = await runMany(v, v.mode, iters, step('your gear')); done++;
   const res = [];
   for (const [k, name, delta] of STATS){
     const v2 = Object.assign({}, v);
     if (k === 'wpn'){ v2.wMin += delta; v2.wMax += delta; } else v2[k] += delta;
-    const r = await runMany(v2, v.mode, iters, p => prog((done + p) / total)); done++;
+    const r = await runMany(v2, v.mode, iters, step('+' + delta + ' ' + name)); done++;
     res.push({k, name, delta, per: (r.mean - base.mean) / delta});
   }
   const strPer = res.find(r => r.k === 'str').per || 1e-9;
@@ -1767,6 +1789,7 @@ async function weights(){
   const n = document.createElement('p'); n.className = 'note';
   n.textContent = `Base: ${fmt(base.mean, 1)} DPS, ${fmt(iters)} iterations per stat. Percent stats (hit, crit, expertise) are shown per 1%. Values near zero may be noise, especially for hit and expertise near their caps.`;
   box.appendChild(n);
+  progDone(total + ' runs, ' + fmt(iters) + ' iterations each', t0);
   setBusy(false);
 }
 
@@ -1785,7 +1808,7 @@ function itemTip(it, slot){
     add(/^(Equip|Use|Chance on hit):/.test(l) ? 'tt-eq' : /^"/.test(l) ? 'tt-flavor' : '', l);
   }
   if (e && !enchShown) add('tt-eq', e.x);
-  for (const pn of [procNote(PROCS[it.id]), procNote(PROCS['u' + it.id])]) if (pn) add(pn.startsWith('Not') ? 'tt-dim' : '', pn);
+  for (const pn of [procNote(PROCS[it.id]), procNote(PROCS['u' + it.id]), ITEM_NOTE[it.id]]) if (pn) add(pn.startsWith('Not') ? 'tt-dim' : '', pn);
   setTip(it, add);
   add('tt-src', it.src);
 }
@@ -2235,6 +2258,11 @@ function gearProcs(v){
   for (const id of Object.keys(c).sort()){ const S = SETS[id]; if (!S) continue; for (const [t] of S.b){ const p = PROCS['s' + id + ':' + t]; if (p && !p.no && c[id] >= t) defs.push(Object.assign({n: S.n + ' (' + t + ')'}, p)); } }
   return procList(defs, v.procPPM);
 }
+// items with an effect of their own in the fight that is not a proc: what the sim does with it
+const ITEM_NOTE = {
+  23203: 'Counts in the sim: your own Judgement of the Crusader gives +194 Holy damage instead of +161. Not when another paladin keeps it up. The +48 Attack Power on Seal of the Crusader is not counted: the seal is judged at the pull.',
+  272435: 'Counts in the sim: +4% damage on your Judgements.',
+};
 // what the sim does with an effect, for the tooltips
 const PROC_SCHOOL = {phys:'Physical', physical:'Physical', bleed:'bleed', fire:'Fire', shadow:'Shadow', nature:'Nature', arcane:'Arcane', frost:'Frost'};
 const PROC_EVENT = {white:'white hits', wf:'Windfury', hs:'Holy Strike', soc:'Seal of Command strikes', sor:'Seal of Righteousness hits', joc:'Judgement of Command', joc2:'', cast:'Exorcism and Holy Shock', cons:'Consecration', how:'Hammer of Wrath', judge:'Judgement', sealcast:'seal casts'};
@@ -2271,6 +2299,7 @@ function applyGear(v){
   const w = gear['Main Hand'];
   if (w && w.d){ v.wMin = w.d[0]; v.wMax = w.d[1]; v.wSpeed = w.d[2]; }
   const lb = gear['Libram']; v.judgeMult = lb && lb.id === 272435 ? 1.04 : 1; // Libram of Law
+  v.jotcLibram = lb && lb.id === 23203 ? 33 : 0;                             // Libram of Fervor
   v.hanna = !!(gear['Main Hand'] && gear['Main Hand'].id === 2801);            // Blade of Hanna proc
   v.procs = gearProcs(v);
   const sb = setStats();
