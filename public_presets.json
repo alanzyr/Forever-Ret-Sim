@@ -56,7 +56,8 @@
    "Feet": "Greater Agility",
    "Back": "Agility",
    "Wrists": "Superior Strength",
-   "Hands": "Superior Strength"
+   "Hands": "Superior Strength",
+   "Main Hand": "Crusader"
   },
   "mode": "socSor"
  },
