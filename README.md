@@ -82,6 +82,11 @@ Vercel works as an alternative: import the repository and it uses `vercel.json`.
 - **Import > Addon** reads the export code of the in-game addon ([PaladinSIMAddon](https://github.com/alanzyr/PaladinSIMAddon),
   `/rsim export`): `RSA1:` + base64 of JSON with items by the game's inventory slot number (`id`, `enchant`), the talent
   string, race and rotation. Enchants are matched by their id (`e` in `ENCHANTS`).
+- **Import > Wowhead** reads a gear planner link (`https://www.wowhead.com/forever/gear-planner/paladin/<race>/<code>` or the
+  `[gear-planner=...]` tag): gear, enchants, race and talents. The code is version 5 of Wowhead's format, a stream of
+  6-bit values read as variable-length integers (`ieWowhead`); the layout was worked out from the readers in the wowsims
+  projects and checked on a real link. Enchants are in the link as the spell that puts them on: `WH_ENCH` maps the ones
+  whose spell differs from the one in `ENCHANTS`.
 - **Settings codes** go both ways between the website and the addon: `RSS1:` + base64 of JSON `{ v: 1, settings: {...} }`
   with the fields of the groups `buff`, `cons`, `tgt` and `rot` under their own keys. Export > Addon settings writes
   one; Import reads one. Gear, talents and the Player fields are never in it. A new field in one of those groups is
