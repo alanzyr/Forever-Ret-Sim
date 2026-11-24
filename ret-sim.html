@@ -321,6 +321,8 @@ pre.log{border-radius:0;background:#12141b}
 #tip.wow .tt-piece{color:#9d9d9d;padding-left:10px}
 #tip.wow .tt-piece.on{color:#ffff98}
 #tip.wow .tt-dim{color:#9d9d9d}
+#tip.wow .tt-desc,#tip.wow .qset{color:#ffd100}
+#tip.wow .tt-gap{margin-top:6px}
 #tip.wow .tt-src{color:#9d9d9d;font-size:11px;margin-top:8px;padding-top:5px;border-top:1px solid #34374c}
 #tip.wow .q1{color:#fff}#tip.wow .q2{color:#1eff00}#tip.wow .q3{color:#0070dd}#tip.wow .q4{color:#a335ee}#tip.wow .q5{color:#ff8000}
 @media (prefers-reduced-motion:reduce){.progress i{transition:none}}
@@ -1568,7 +1570,7 @@ function render(res, v){
       } else td.textContent = x;
       tr.appendChild(td);
     });
-    { const tt = sourceTip(r.k, c); if (tt && tr.firstChild){ tr.firstChild.dataset.tip = r.k + '|' + tt; tr.firstChild.tabIndex = 0; } }
+    { const tt = sourceTip(r.k, c), base = r.k.replace(/ \(echo\)$/, ''); if (tr.firstChild) tipTo(tr.firstChild, r.k, tt ? {n: r.k, row: SRC_ROW[base], lines: [['tt-desc', tt], ['tt-dim tt-gap', fmt(r.dps, 1) + ' DPS · ' + fmt(pct, 1) + ' % of your damage · ' + fmt(r.n, 1) + ' hits per fight']]} : null); }
     { const ic = abIcon(r.k); if (ic && tr.firstChild){ const im = document.createElement('img'); im.src = ic; im.alt = ''; im.className = 'abi'; tr.firstChild.prepend(im); } } tb.appendChild(tr);
   }
 
@@ -1643,14 +1645,17 @@ function renderBuffs(res, v){
   const fight = v.fight, au = res.auras || {};
   const pct = x => fmt(x * 100, 1) + ' %', per = x => fmt(x, x < 10 ? 1 : 0) + '×';
   const group = t => { const tr = document.createElement('tr'); tr.className = 'bgrp'; const td = document.createElement('td'); td.colSpan = 4; td.textContent = t; tr.appendChild(td); tb.appendChild(tr); };
+  let kind = '';
   const row = (icon, name, fx, up, times, dim) => {
     const tr = document.createElement('tr');
     [name, fx, up, times].forEach((x, i) => { const td = document.createElement('td'); td.textContent = x; if (dim && i > 1) td.className = 'dim'; tr.appendChild(td); });
+    tipTo(tr.firstChild, name.replace(/ \(yours\)$/, ''), {n: name, row: [kind, ''], lines: [['tt-desc', fx], ['tt-dim tt-gap', dim ? 'Not simulated' : [up !== '–' ? 'Uptime ' + up : '', times !== '–' ? times + ' per fight' : ''].filter(Boolean).join(' · ')]]});
     if (icon){ const im = document.createElement('img'); im.src = icon; im.alt = ''; im.className = 'abi'; tr.firstChild.prepend(im); }
     tb.appendChild(tr);
   };
   const F = k => FIELDS.find(f => f.k === k);
-  const section = (title, rows) => { if (rows.length){ group(title); for (const r of rows) row(...r); } };
+  const KIND = {'Raid buffs': 'Raid buff', 'On the target': 'Debuff on the target', 'Consumables': 'Consumable', 'Gained in the fight': 'Gained in the fight', 'On-use effects you wear': 'On-use effect'};
+  const section = (title, rows) => { if (rows.length){ group(title); kind = KIND[title] || ''; for (const r of rows) row(...r); } };
   const a = k => au[k] || {count: 0, up: 0};
   // raid buffs
   section('Raid buffs', BUFF_KEYS.concat(PARTY_KEYS).filter(k => v[k]).map(k => { const [nm, fx] = uiSplit(F(k).l);
@@ -1785,6 +1790,40 @@ function itemTip(it, slot){
   setTip(it, add);
   add('tt-src', it.src);
 }
+// A tooltip in the game's style from {n name, q quality 1-5, row [left, right], lines [[class, text], ...]}
+function gameTip(o){
+  const add = (cls, txt) => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = txt; tip.appendChild(d); return d; };
+  tip.classList.add('wow');
+  add('tt-name q' + (o.q || 1), o.n);
+  if (o.row){ const row = add('tt-row', ''); for (const x of o.row){ const sp = document.createElement('span'); sp.textContent = x || ''; row.appendChild(sp); } }
+  for (const [cls, txt] of o.lines || []) if (txt) add(cls, txt);
+}
+// What a row of Detailed Results is: a worn item, an enchant, a set bonus, or something else (null)
+function srcRef(name){
+  const base = String(name).replace(/ \(echo\)$/, '').replace(/: .*$/, '');
+  for (const k of Object.keys(gear)) if (gear[k].n === base) return {item: gear[k], slot: k};
+  for (const k of Object.keys(ench)) if (ench[k].n.replace(/^Enchant: /, '') === base) return {ench: ENCHANTS.indexOf(ench[k])};
+  const m = base.match(/^(.*) \((\d+)\)$/);
+  if (m){ const c = setCounts(); let hit = null; for (const id in SETS) if (SETS[id].n === m[1] && PROCS['s' + id + ':' + m[2]] && (!hit || (c[id] || 0) >= +m[2])) hit = {set: id, t: +m[2]}; if (hit) return hit; }
+  return null;
+}
+// Puts the right tooltip on a cell: the item's, the enchant's, the set bonus', or the description given (o)
+function tipTo(td, name, o){
+  const ref = srcRef(name);
+  td.tabIndex = 0; td.dataset.tip = name;
+  if (ref && ref.item){ td.dataset.item = ref.item.id + '|' + ref.item.s; td.dataset.slot = ref.slot; return; }
+  if (ref && ref.ench >= 0 && ref.ench !== undefined){ td.dataset.ench = String(ref.ench); return; }
+  if (ref && ref.set){
+    const S = SETS[ref.set], bonus = S.b.find(b => b[0] === ref.t), cnt = setCounts()[ref.set] || 0;
+    o = {n: S.n + ' (' + cnt + '/' + S.p.length + ')', q: 'set', lines: [['tt-eq', '(' + ref.t + ') Set: ' + (bonus ? bonus[1] : '')], ['tt-gap', procNote(PROCS['s' + ref.set + ':' + ref.t])]].concat((o && o.lines || []).filter(l => l[0] === 'tt-dim'))};
+  }
+  if (o) td.dataset.wtip = JSON.stringify(o);
+}
+// the second line of an ability's tooltip: school and what kind of thing it is
+const SRC_ROW = {'Autoattack':['Physical', 'Melee'], 'Seal of Righteousness':['Holy', 'Seal'], 'Seal of Command':['Holy', 'Seal'], 'Seal of Fury':['Holy', 'Seal'],
+  'Judgement of Righteousness':['Holy', 'Judgement'], 'Judgement of Command':['Holy', 'Judgement'], 'Judgement of the Crusader':['Holy', 'Judgement'], 'Holy Strike':['Holy', 'Melee ability'],
+  'Windfury Totem':['Physical', 'Totem'], 'Consecration':['Holy', 'Spell'], 'Hammer of Wrath':['Holy', 'Ranged'], 'Exorcism':['Holy', 'Spell'], 'Holy Shock':['Holy', 'Spell'],
+  'Dragonbreath Chili':['Fire', 'Food'], 'Goblin Sapper Charge':['Fire', 'Engineering'], 'Touch of the Grave':['Shadow', 'Racial'], 'Perfected Form':['Physical', 'Blade of Hanna']};
 function enchTip(x){
   const add = (cls, txt) => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = txt; tip.appendChild(d); return d; };
   tip.classList.add('wow');
@@ -1808,6 +1847,7 @@ function showTip(el, x, y){
   const en = el.dataset.ench !== undefined ? ENCHANTS[+el.dataset.ench] : null;
   if (it) itemTip(it, el.dataset.slot);
   else if (en) enchTip(en);
+  else if (el.dataset.wtip) gameTip(JSON.parse(el.dataset.wtip));
   else {
     const [a, b] = (el.dataset.tip || '').split('|');
     const h = document.createElement('b'); h.textContent = a; tip.appendChild(h);
