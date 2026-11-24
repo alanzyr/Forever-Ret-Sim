@@ -91,6 +91,9 @@ th,td{text-align:right;padding:3px 8px;border-bottom:1px solid var(--line);white
 th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500}
 th:first-child,td:first-child{text-align:left}
 td.barcell{width:34%;min-width:140px}
+#buffs th:nth-child(2),#buffs td:nth-child(2){text-align:left;white-space:normal;color:var(--muted)}
+#buffs tr.bgrp td{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding-top:10px}
+#buffs td.dim{color:var(--muted)}
 .bar{height:10px;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px}
 .bar.muted{background:var(--bar-muted)}
 .hrow{display:grid;grid-template-columns:minmax(120px,220px) minmax(0,1fr) 72px;gap:10px;align-items:center;padding:3px 0}
@@ -532,6 +535,11 @@ ol.prio li{margin:5px 0;max-width:80ch}
         <div class="scroll"><table id="breakdown"><thead><tr><th>Source</th><th>DPS</th><th>Share</th><th>Hits</th><th>Avg hit</th><th>Crit</th><th>Miss</th></tr></thead><tbody><tr><td colspan="7" class="empty">No results yet.</td></tr></tbody></table></div>
       </div>
       <div class="card">
+        <h2>Buffs</h2>
+        <p class="hint">What is on for the whole fight, and what comes and goes in it. Uptime and times per fight are averages over all iterations.</p>
+        <div class="scroll"><table id="buffs"><thead><tr><th>Buff</th><th>Effect</th><th>Uptime</th><th>Per fight</th></tr></thead><tbody><tr><td colspan="4" class="empty">No results yet.</td></tr></tbody></table></div>
+      </div>
+      <div class="card">
         <h2>Timeline</h2>
         <p class="hint" id="tl-hint">One full fight, second by second. Press Simulate to draw it.</p>
         <div class="tl-ctl" id="tl-ctl" hidden><button type="button" id="tl-in" aria-label="Zoom in" data-tip="Zoom in">+</button><button type="button" id="tl-out" aria-label="Zoom out" data-tip="Zoom out">−</button><button type="button" id="tl-reset">Reset zoom</button><input type="range" id="tl-pan" min="0" step="0.5" value="0" aria-label="Scroll the timeline" hidden><span class="note" id="tl-range"></span></div>
@@ -920,6 +928,9 @@ function simulate(c, mode, seed, wantLog){
   const consTicks = []; let nextMana = 2;
   const execAt = T * (1 - c.executePct / 100);
   let echoes = 0, swings = 0, blocked = 0, manaUsed = 0; const blk = {};
+  // uptime of what is gained in the fight, for the Buffs list (counted only: it changes nothing in the fight)
+  const AU = {};
+  const aura = (n, t, until, old) => { const a = AU[n] || (AU[n] = {n, up:0, count:0}); a.count++; a.up += Math.max(0, Math.min(until, T) - Math.max(t, Math.min(old, T))); };
   // "Chance on hit" effects of the worn items: up = buff or armour debuff runs until, left/next = damage over time, late = delayed hit
   const PR = (c.procs || []).map(p => ({p, up:-1, left:0, next:Infinity, late:Infinity, cd:-1, n:0, upT:0}));
   const pBuff = (t, k) => { let a = 0; for (const x of PR) if (t < x.up && x.p.buff && x.p.buff[k]) a += x.p.buff[k]; return a; };
@@ -935,7 +946,7 @@ function simulate(c, mode, seed, wantLog){
   };
 
   const veng = t => 1 + (t < vExp ? vSt * c.vengPct * c.vengRank / 100 : 0);
-  const onCrit = t => { vSt = Math.min(c.vengStacks, (t < vExp ? vSt : 0) + 1); vExp = t + 30; };
+  const onCrit = t => { if (c.vengRank) aura('Vengeance', t, t + 30, vExp); vSt = Math.min(c.vengStacks, (t < vExp ? vSt : 0) + 1); vExp = t + 30; };
   const spNow = t => sp0 + (t < jotcExp ? c.jotc : 0) + (t < formUntil ? c.formSP : 0) + pSP(t);
   const holy = t => veng(t) * c.twoH * (t < consUntil ? 1 + c.consecratedGround / 100 : 1);
   const wpn = () => c.wMin + R() * (c.wMax - c.wMin) + (c.ap + (nowT < formUntil ? c.formAP : 0) + pAP(curT)) / 14 * c.wSpeed;
@@ -995,7 +1006,7 @@ function simulate(c, mode, seed, wantLog){
     L(t, `Autoattack ${Math.round(d)}${resTxt(res)} [${SEAL[seal]}]`);
     if (res === 'crit') onCrit(t);
     if (c.hanna && ++formStacks >= 30){
-      formStacks = 0; formUntil = t + 20;
+      formStacks = 0; aura('Perfected Form', t, t + 20, formUntil); formUntil = t + 20;
       const fr = rollMelee(true);
       if (missed(fr)) rec('Perfected Form', 0, fr);
       else { const fd = 490 * c.twoH * armorAt(t) * veng(t) * (fr === 'crit' ? 2 : 1); rec('Perfected Form', fd, fr); L(t, `  ↳ Perfected Form ${Math.round(fd)}, +20 all stats for 20 s`); if (fr === 'crit') onCrit(t); }
@@ -1026,7 +1037,7 @@ function simulate(c, mode, seed, wantLog){
     if (seal === 'crusader'){
       const r = rollMelee(false);
       rec('Judgement of the Crusader', 0, r === 'miss' ? 'miss' : 'hit');
-      if (r !== 'miss'){ jotcExp = t + c.jotcDur; L(t, 'Judgement of the Crusader applied to the boss'); }
+      if (r !== 'miss'){ aura('Judgement of the Crusader', t, t + c.jotcDur, jotcExp); jotcExp = t + c.jotcDur; L(t, 'Judgement of the Crusader applied to the boss'); }
       else L(t, 'Judgement of the Crusader misses');
       return;
     }
@@ -1171,7 +1182,7 @@ function simulate(c, mode, seed, wantLog){
     if (r === 'crit') d *= 2;
     rec('Holy Strike', d, r); L(t, `Holy Strike ${Math.round(d)}${resTxt(r)}`);
     if (r === 'crit') onCrit(t);
-    if (c.sacredArbiter && t < jotcExp && !c.jotcExt) jotcExp = t + c.jotcDur;
+    if (c.sacredArbiter && t < jotcExp && !c.jotcExt){ aura('Judgement of the Crusader', t, t + c.jotcDur, jotcExp); jotcExp = t + c.jotcDur; }
     if (seal !== 'crusader') sealEffect(seal, t, false);
     wf(t); chili(t); itemProcs(t, 'hs');
   }
@@ -1197,7 +1208,7 @@ function simulate(c, mode, seed, wantLog){
       else if (a === 'shock' && c.hasShock && t >= cdShock){ if (pay('shock', c.shockCost * c.bened)){ cdShock = t + c.shockCd; spell('Holy Shock', c.shockMin, c.shockMax, t); return true; } }
       else if (a === 'cons' && t >= cdCons && mana >= c.consMinPct / 100 * c.mana){
         if (pay('cons', c.consCost * c.bened * c.conduit)){
-          cdCons = t + c.consCd; consUntil = t + 8;
+          cdCons = t + c.consCd; if (c.consecratedGround) aura('Consecrated Ground', t, t + 8, consUntil); consUntil = t + 8;
           for (let i = 1; i <= 8; i++) consTicks.push(t + i);
           consTicks.sort((a, b) => a - b);
           L(t, 'Consecration cast'); itemProcs(t, 'cons'); return true;
@@ -1224,9 +1235,9 @@ function simulate(c, mode, seed, wantLog){
     curT = t;
     while (consTicks.length && consTicks[0] <= t + 1e-9) consTick(consTicks.shift());
     while (nextMana <= t + 1e-9){ mana = Math.min(c.mana, mana + c.mp5 * 0.4); nextMana += 2; }
-    if (c.manaTide && t >= cdTide && mana <= c.mana - 1160){ mana += 1160; cdTide = t + 300; L(t, 'Mana Tide Totem'); if (ux) ux.push([t, 'Mana Tide Totem', 'Mana potion or rune', '']); }
-    if (c.potions && t >= cdPot && mana <= c.mana - 2250){ mana += rnd(1350, 2250); cdPot = t + 120; L(t, 'Major Mana Potion'); if (ux) ux.push([t, 'Major Mana Potion', 'Mana potion or rune', '']); }
-    if (c.runes && t >= cdRune && mana <= c.mana - 1500){ mana += rnd(900, 1500); cdRune = t + 120; L(t, 'Dark Rune'); if (ux) ux.push([t, 'Dark Rune', 'Mana potion or rune', '']); }
+    if (c.manaTide && t >= cdTide && mana <= c.mana - 1160){ mana += 1160; cdTide = t + 300; aura('Mana Tide Totem', t, t, t); L(t, 'Mana Tide Totem'); if (ux) ux.push([t, 'Mana Tide Totem', 'Mana potion or rune', '']); }
+    if (c.potions && t >= cdPot && mana <= c.mana - 2250){ mana += rnd(1350, 2250); cdPot = t + 120; aura('Major Mana Potion', t, t, t); L(t, 'Major Mana Potion'); if (ux) ux.push([t, 'Major Mana Potion', 'Mana potion or rune', '']); }
+    if (c.runes && t >= cdRune && mana <= c.mana - 1500){ mana += rnd(900, 1500); cdRune = t + 120; aura('Dark Rune', t, t, t); L(t, 'Dark Rune'); if (ux) ux.push([t, 'Dark Rune', 'Mana potion or rune', '']); }
     if (t >= cdJ && seal !== 'fury') judge(t);
     if (t >= gcd){ if (gcdAction(t)) gcd = t + c.gcd + c.latency; }
     if (mn) mn.push([t, mana]);
@@ -1236,7 +1247,7 @@ function simulate(c, mode, seed, wantLog){
     if (n >= T) break;
     t = n;
   }
-  return {dps: total / T, S, mana, echoes, swings, blocked, manaUsed, log, ev, mn, ux, procs: PR.map(x => ({n: x.p.n, tx: x.p.tx, count: x.n, up: x.upT / T}))};
+  return {dps: total / T, S, mana, echoes, swings, blocked, manaUsed, log, ev, mn, ux, procs: PR.map(x => ({n: x.p.n, tx: x.p.tx, mana: x.p.mana, extra: x.p.extra, count: x.n, up: x.upT / T})), auras: Object.values(AU).map(a => ({n: a.n, count: a.count, up: a.up / T}))};
 }
 /* ===== ENGINE END ===== */
 
@@ -1363,13 +1374,14 @@ async function runMany(v, modeKey, iters, onProg){
   }
   const c = derive(v);
   const m = resolveMode(modeKey, v.wSpeed);
-  const dps = []; const S = {}; let mana = 0, echoes = 0, blocked = 0, manaUsed = 0; const procs = [];
+  const dps = []; const S = {}; let mana = 0, echoes = 0, blocked = 0, manaUsed = 0; const procs = [], auras = {};
   const chunk = 250;
   for (let i = 0; i < iters; i += chunk){
     for (let j = i; j < Math.min(iters, i + chunk); j++){
       const r = simulate(c, m, v.seed * 7919 + j * 104729, false);
       dps.push(r.dps); mana += r.mana; echoes += r.echoes; blocked += r.blocked; manaUsed += r.manaUsed;
-      r.procs.forEach((p, q) => { const a = procs[q] || (procs[q] = {n: p.n, tx: p.tx, count: 0, up: 0}); a.count += p.count; a.up += p.up; });
+      r.procs.forEach((p, q) => { const a = procs[q] || (procs[q] = {n: p.n, tx: p.tx, mana: p.mana, extra: p.extra, count: 0, up: 0}); a.count += p.count; a.up += p.up; });
+      for (const p of r.auras){ const a = auras[p.n] || (auras[p.n] = {count: 0, up: 0}); a.count += p.count; a.up += p.up; }
       for (const k in r.S){ const a = S[k] || (S[k] = {dmg:0,n:0,crit:0,miss:0}); const b = r.S[k]; a.dmg += b.dmg; a.n += b.n; a.crit += b.crit; a.miss += b.miss; }
     }
     if (onProg) onProg(Math.min(1, (i + chunk) / iters));
@@ -1377,7 +1389,7 @@ async function runMany(v, modeKey, iters, onProg){
   }
   const n = dps.length, mean = dps.reduce((a, b) => a + b, 0) / n;
   const sd = Math.sqrt(dps.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, n - 1));
-  return {mode:m, c, dps, mean, sd, n, S, mana:mana / n, echoes:echoes / n, blocked:blocked / n, manaUsed:manaUsed / n, procs: procs.map(p => ({n: p.n, tx: p.tx, count: p.count / n, up: p.up / n}))};
+  return {mode:m, c, dps, mean, sd, n, S, mana:mana / n, echoes:echoes / n, blocked:blocked / n, manaUsed:manaUsed / n, procs: procs.map(p => ({n: p.n, tx: p.tx, mana: p.mana, extra: p.extra, count: p.count / n, up: p.up / n})), auras: Object.fromEntries(Object.entries(auras).map(([k, a]) => [k, {count: a.count / n, up: a.up / n}]))};
 }
 
 function setBusy(b){ for (const id of ['run','cmp','sw']) $('#' + id).disabled = b; }
@@ -1510,8 +1522,11 @@ function render(res, v){
       } else td.textContent = x;
       tr.appendChild(td);
     });
+    { const tt = sourceTip(r.k, c); if (tt && tr.firstChild){ tr.firstChild.dataset.tip = r.k + '|' + tt; tr.firstChild.tabIndex = 0; } }
     { const ic = abIcon(r.k); if (ic && tr.firstChild){ const im = document.createElement('img'); im.src = ic; im.alt = ''; im.className = 'abi'; tr.firstChild.prepend(im); } } tb.appendChild(tr);
   }
+
+  renderBuffs(res, v);
 
   // histogram
   const lo = Math.min(...res.dps), hi = Math.max(...res.dps), bins = 30, w = (hi - lo) / bins || 1;
@@ -1535,6 +1550,104 @@ function render(res, v){
   $('#log').textContent = one.log.map(([t, m]) => t.toFixed(2).padStart(6) + '  ' + m).join('\n');
   tlData = {ev:one.ev, ux:one.ux || [], mn:one.mn, T:c2.fight, dps:one.dps, mean:res.mean, manaMax:Math.max(1, c2.mana), execAt:c2.fight * (1 - c2.executePct / 100)};
   renderTimeline();
+}
+
+// What a damage source is and how the sim plays it, for the tooltip in the Damage list. c: the derived values of the run.
+function sourceTip(name, c){
+  const echo = / \(echo\)$/.test(name), k = name.replace(/ \(echo\)$/, '');
+  const p = x => +(x * 100).toFixed(1) + '%', r = (a, b) => a === b ? a : a + '–' + b;
+  const T = {
+    'Autoattack': () => `Your white swing: ${r(c.wMin, c.wMax)} weapon damage plus Attack Power / 14 × ${c.wSpeed} s, Physical. The boss's armor takes ${p(1 - c.armorMult)} off. ${c.glance}% of the hits are glancing blows for ${c.glanceDmg}% damage; a crit deals double.`,
+    'Seal of Righteousness': () => `Holy damage on every white hit and Holy Strike that lands. It grows with spell damage and with weapon speed, cannot miss on its own and crits at your melee crit chance for double.`,
+    'Seal of Command': () => `${c.socPPM} procs per minute on hits: ${c.socPct}% weapon damage plus ${p(c.socSpCoef)} of your spell damage, as Holy. It is a melee strike: it can miss, be dodged and crit for double.`,
+    'Seal of Fury': () => `${c.furyFlat} Holy damage on every swing plus ${p(c.furyCoef)} of your spell damage. It cannot be judged.`,
+    'Judgement of Righteousness': () => `${r(c.jorMin, c.jorMax)} Holy damage plus ${p(c.jorCoef)} of your spell damage, every ${c.judgeCd - c.impJudge} s for ${Math.round(c.judgeCost * c.bened)} mana. A ranged attack: it can miss but not be dodged, and crits for double.`,
+    'Judgement of Command': () => `${r(c.jocMin, c.jocMax)} Holy damage plus ${p(c.jocCoef)} of your spell damage, every ${c.judgeCd - c.impJudge} s for ${Math.round(c.judgeCost * c.bened)} mana. A melee attack: it can miss, be dodged and crit for double, and it rolls item procs twice.`,
+    'Judgement of the Crusader': () => `The opener. It deals no damage: the boss takes +${c.jotc} Holy damage from your spells and seals for ${c.jotcDur} s.`,
+    'Holy Strike': () => `${c.hsPct}% weapon damage plus ${r(c.hsMin, c.hsMax)} and ${p(c.hsCoef)} of your spell damage, as Holy. Every ${c.hsCd} s for ${Math.round(c.hsCost * c.bened)} mana. A melee attack that also triggers your seal.`,
+    'Windfury Totem': () => `${c.wfChance}% chance on a hit for an extra white attack with +${c.wfAP} Attack Power. It cannot miss here and crits at your melee crit chance.`,
+    'Consecration': () => `${c.consTotal} Holy damage over 8 s plus ${p(c.consCoef)} of your spell damage per tick, on up to 4 targets. Every ${c.consCd} s for ${Math.round(c.consCost * c.bened * c.conduit)} mana, cast when mana is above ${c.consMinPct}%. Each tick can miss or crit as a spell.`,
+    'Hammer of Wrath': () => `${r(c.howMin, c.howMax)} Holy damage plus ${p(c.spellCoef)} of your spell damage, once the boss is below ${c.executePct}% health. Every ${c.howCd} s for ${Math.round(c.howCost * c.bened * c.conduit)} mana. A ranged attack: it crits for double.`,
+    'Exorcism': () => `${r(c.exoMin, c.exoMax)} Holy damage plus ${p(c.spellCoef)} of your spell damage, against Undead and Demons only. Every ${c.exoCd} s for ${Math.round(c.exoCost * c.bened * c.conduit)} mana. A spell: it crits for 150%.`,
+    'Holy Shock': () => `${r(c.shockMin, c.shockMax)} Holy damage plus ${p(c.spellCoef)} of your spell damage. Every ${c.shockCd} s for ${Math.round(c.shockCost * c.bened)} mana. A spell: it crits for 150%.`,
+    'Dragonbreath Chili': () => `${c.chiliChance}% chance on a melee hit, at most once every ${c.chiliCd} s: ${c.chiliBase} Fire damage plus ${p(c.chiliCoef)} of your spell damage that is not Holy only.`,
+    'Goblin Sapper Charge': () => `Thrown once as you reach the boss: ${c.sapperDmg} Fire damage. It can miss or crit as a spell.`,
+    'Touch of the Grave': () => `Undead racial: 20% chance on a white hit, at most once every 15 s, for ${c.totgDmg} Shadow damage.`,
+    'Perfected Form': () => `Blade of Hanna: every 30th white hit strikes for 490 Physical damage and gives +20 to all stats for 20 s.`,
+  };
+  let txt = T[k] ? T[k]() : '';
+  if (!txt){
+    // an item, enchant or set bonus: what the sim plays for it
+    const base = k.replace(/: .*$/, '');
+    let d = null;
+    for (const g of Object.values(gear)) if (g.n === base && PROCS[g.id]) d = PROCS[g.id];
+    for (const e of Object.values(ench)) if (e.n.replace(/^Enchant: /, '') === base && PROCS['e' + e.e]) d = PROCS['e' + e.e];
+    const m = base.match(/^(.*) \((\d+)\)$/);
+    if (m) for (const id in SETS) if (SETS[id].n === m[1] && PROCS['s' + id + ':' + m[2]]) d = PROCS['s' + id + ':' + m[2]];
+    txt = d ? procNote(d).replace(/^Counts in the sim: /, '') : '';
+    if (txt) txt = txt[0].toUpperCase() + txt.slice(1);
+  }
+  if (echo) txt += ' This row is the copies Unsealed Wrath releases when you swap seals.';
+  return txt;
+}
+
+// The Buffs card: what is on all fight (raid buffs, debuffs on the target, consumables) and what is gained in it.
+function renderBuffs(res, v){
+  const tb = $('#buffs tbody'); tb.innerHTML = '';
+  const fight = v.fight, au = res.auras || {};
+  const pct = x => fmt(x * 100, 1) + ' %', per = x => fmt(x, x < 10 ? 1 : 0) + '×';
+  const group = t => { const tr = document.createElement('tr'); tr.className = 'bgrp'; const td = document.createElement('td'); td.colSpan = 4; td.textContent = t; tr.appendChild(td); tb.appendChild(tr); };
+  const row = (icon, name, fx, up, times, dim) => {
+    const tr = document.createElement('tr');
+    [name, fx, up, times].forEach((x, i) => { const td = document.createElement('td'); td.textContent = x; if (dim && i > 1) td.className = 'dim'; tr.appendChild(td); });
+    if (icon){ const im = document.createElement('img'); im.src = icon; im.alt = ''; im.className = 'abi'; tr.firstChild.prepend(im); }
+    tb.appendChild(tr);
+  };
+  const F = k => FIELDS.find(f => f.k === k);
+  const section = (title, rows) => { if (rows.length){ group(title); for (const r of rows) row(...r); } };
+  const a = k => au[k] || {count: 0, up: 0};
+  // raid buffs
+  section('Raid buffs', BUFF_KEYS.concat(PARTY_KEYS).filter(k => v[k]).map(k => { const [nm, fx] = uiSplit(F(k).l);
+    return k === 'manaTide' ? [uiIcon(k), nm, fx, '–', per(a('Mana Tide Totem').count)] : [uiIcon(k), nm, fx, '100 %', '–']; }));
+  // on the target
+  const tgt = DEBUFF_KEYS.filter(k => v[k]).map(k => { const [nm, fx] = uiSplit(F(k).l); return [uiIcon(k), nm, fx, '100 %', '–']; });
+  if (!v.jotcExt && au['Judgement of the Crusader']) tgt.push([abIcon('Judgement of the Crusader'), 'Judgement of the Crusader (yours)', '+' + v.jotc + ' Holy damage taken', pct(a('Judgement of the Crusader').up), per(a('Judgement of the Crusader').count)]);
+  for (const p of res.procs || []) if (p.tx && /on the boss/.test(p.tx)) tgt.push([abIcon(p.n), p.n, p.tx, pct(p.up), per(p.count)]);
+  section('On the target', tgt);
+  // consumables
+  const cons = [];
+  for (const f of FIELDS.filter(f => f.g === 'cons')){
+    if (f.t === 'sel'){
+      if (!v[f.k] || v[f.k] === 'none') continue;
+      const o = f.o.find(q => q[0] === v[f.k]); if (!o) continue;
+      const [nm, fx] = uiSplit(o[1]);
+      if (f.k === 'combatPot'){ const n = 1 + Math.floor(Math.max(0, fight - 30) / 120); cons.push([uiIcon(f.k + ':' + o[0]), nm, fx + ', used on cooldown from the pull (counted as its average)', pct(Math.min(1, n * 30 / Math.max(1, fight))), per(n)]); }
+      else cons.push([uiIcon(f.k + ':' + o[0]), nm, fx, '100 %', '–']);
+    } else if (f.t === 'chk'){
+      if (f.k === 'potions' || f.k === 'runes'){ const on = f.k === 'potions' ? v.potions : v.runes; if (on) cons.push([uiIcon(f.k), uiSplit(f.l)[0], 'mana when it is missing', '–', per(a(f.k === 'potions' ? 'Major Mana Potion' : 'Dark Rune').count)]); continue; }
+      if (!v[f.k]) continue;
+      const [nm, fx] = uiSplit(f.l), dmg = res.S[nm];
+      cons.push([uiIcon(f.k), nm, fx, dmg ? '–' : '100 %', dmg ? per(dmg.n / res.n) : '–']);
+    }
+  }
+  section('Consumables', cons);
+  // gained in the fight
+  const got = [];
+  if (au['Vengeance']) got.push([typeof ICONS !== 'undefined' && ICONS['Vengeance'] || '', 'Vengeance', 'up to +' + v.vengStacks * v.vengPct * v.vengRank + '% Physical and Holy damage', pct(a('Vengeance').up), per(a('Vengeance').count)]);
+  if (au['Perfected Form']) got.push([abIcon('Perfected Form'), 'Perfected Form', '+20 all stats for 20 s (Blade of Hanna)', pct(a('Perfected Form').up), per(a('Perfected Form').count)]);
+  if (au['Consecrated Ground']) got.push([abIcon('Consecration'), 'Consecrated Ground', '+' + v.consecratedGround + '% Holy damage while Consecration burns', pct(a('Consecrated Ground').up), per(a('Consecrated Ground').count)]);
+  for (const p of res.procs || []){
+    if (p.tx && /on the boss/.test(p.tx)) continue;
+    if (p.tx) got.push([abIcon(p.n), p.n, p.tx, pct(p.up), per(p.count)]);
+    else if (p.mana) got.push([abIcon(p.n), p.n, p.mana + ' mana', '–', per(p.count)]);
+    else if (p.extra) got.push([abIcon(p.n), p.n, 'an extra attack', '–', per(p.count)]);
+  }
+  section('Gained in the fight', got);
+  // worn, with an effect to use that the sim does not play
+  const use = [];
+  for (const k of Object.keys(gear).sort()){ const it = gear[k]; for (const l of it.fx || []) if (/^Use:/.test(l)) use.push([ITEM_ICONS[it.ic] || '', it.n, l.replace(/^Use: /, ''), 'not simulated', '–', true]); }
+  section('On-use effects you wear', use);
+  if (!tb.children.length){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 4; td.className = 'empty'; td.textContent = 'No buffs are on.'; tr.appendChild(td); tb.appendChild(tr); }
 }
 
 function hbars(container, rows, unit){
