@@ -15,7 +15,8 @@
    "Feet": 22087,
    "Finger 2": 284715,
    "Trinket 1": 272437,
-   "Libram": 272435
+   "Libram": 272435,
+   "Finger 1": 19325
   },
   "enchants": {
    "Head": "Lesser Arcane Amalgamation: +8 Strength",
@@ -24,7 +25,8 @@
    "Wrists": "Superior Strength",
    "Hands": "Superior Strength",
    "Legs": "Lesser Arcane Amalgamation: +8 Strength",
-   "Feet": "Greater Agility"
+   "Feet": "Greater Agility",
+   "Main Hand": "Crusader"
   },
   "mode": "socSor"
  },
@@ -44,7 +46,8 @@
    "Trinket 2": 11815,
    "Main Hand": 19323,
    "Libram": 272435,
-   "Finger 2": 284715
+   "Finger 2": 284715,
+   "Finger 1": 19325
   },
   "enchants": {
    "Head": "Lesser Arcane Amalgamation: +8 Strength",

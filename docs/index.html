@@ -835,25 +835,25 @@ const PROCS = {
   11608: {no: 'a stun does no damage'},
   11803: {ppm: 2, r: 'measured on Forever', dd: [182, 182, 'fire']},
   11809: {ppm: 1.9, r: 'measured on Forever', dd: [133, 175, 'fire'], aoe: 99},
-  11815: {pct: 1, icd: 2, r: 'game data', on: 'white wf hs', extra: true},
+  11815: {pct: 1, icd: 2, r: 'game data', on: 'white wf hs soc joc', extra: true},
   11816: {ppm: 2, r: 'measured on Forever', dd: [109, 109, 'phys'], x: 'The bonus against Trolls and Orcs is not counted'},
   12243: {dd: [171, 171, 'fire'], dot: [6, 2, 3, 'fire']},
   12463: {ppm: 1.5, r: 'measured on Forever', dot: [23, 1, 7, 'bleed'], x: 'The bonus against Dragonkin is not counted'},
   12528: {no: 'a stun does no damage'},
   12583: {ppm: 1, r: 'fitted from Forever logs', dd: [373, 523, 'phys'], exec: [25, 1.5]},
   12592: {ppm: 1, r: 'measured on Forever', alt: [{w: 3, s: 'Flames of Shahram', dd: [90, 160, 'fire'], aoe: 99, nc: true}, {w: 3, s: 'Will of Shahram', buff: {all: 50, dur: 20}, tx: '+50 all stats'}, {w: 1, s: 'Blessing of Shahram', mana: 200}, {w: 3}], x: 'Shahram casts about 2 s after the proc and several Wills can stack: both are left out'},
-  12632: {pct: 100, r: 'game data', on: 'white wf hs', dd: [3, 3, 'nature']},
+  12632: {pct: 100, r: 'game data', on: 'white wf hs soc joc', dd: [3, 3, 'nature']},
   12769: {no: 'Holy damage is not resisted, so lower resistances change nothing'},
   12790: {ppm: 1, r: 'Classic value', buff: {str: 120, dur: 30}, tx: '+120 Strength', x: 'The heal is not counted'},
   12796: {no: 'a stun does no damage'},
-  12802: {pct: 5, icd: 60, r: 'game data', on: 'white wf hs', buff: {crit: 4, dur: 20}, tx: '+4% crit', x: 'Only your own crit is counted, not the party\'s'},
+  12802: {pct: 5, icd: 60, r: 'game data', on: 'white wf hs soc joc', buff: {crit: 4, dur: 20}, tx: '+4% crit', x: 'Only your own crit is counted, not the party\'s'},
   12969: {ppm: 0.9, r: 'measured on Forever', dot: [51, 2, 5, 'nature'], aoe: 99},
   13053: {ppm: 0.75, r: 'Classic value', dd: [161, 301, 'shadow']},
   13060: {ppm: 3, r: 'Classic value', dd: [75, 75, 'phys']},
   13285: {ppm: 1.95, r: 'measured on Forever', dd: [50, 150, 'phys'], dot: [13, 1, 10, 'bleed']},
   13348: {ppm: 1.1, r: 'measured on Forever', dd: [150, 150, 'shadow'], dot: [34, 2, 3, 'shadow']},
   13393: {ppm: 2, r: 'measured on Forever', buff: {str: 53, dur: 20}, tx: '+53 Strength'},
-  13982: {pct: 100, r: 'measured on Forever', on: 'white wf hs', dd: [22, 33, 'frost'], ah: true},
+  13982: {pct: 100, r: 'measured on Forever', on: 'white wf hs soc joc', dd: [22, 33, 'frost'], ah: true},
   13983: {ppm: 1.9, r: 'measured on Forever', dot: [42, 3, 4, 'nature']},
   14531: {ppm: 3, r: 'fitted from Forever logs', dot: [15, 2, 7, 'shadow']},
   14541: {ppm: 1.9, r: 'measured on Forever', dot: [49, 1, 5, 'shadow'], sure: true, x: 'The healing is not counted'},
@@ -862,35 +862,35 @@ const PROCS = {
   17730: {ppm: 1.2, r: 'measured on Forever', dot: [30, 1, 7, 'bleed']},
   17766: {ppm: 1.8, r: 'measured on Forever', dd: [168, 168, 'phys'], armor: [100, 30], tx: '−100 armor on the boss'},
   18324: {ppm: 1.95, r: 'measured on Forever', dd: [70, 70, 'nature'], x: 'The bonus against Aquatic enemies is not counted'},
-  18383: {pct: 100, r: 'game data', on: 'white wf hs', dd: [2, 2, 'arcane']},
+  18383: {pct: 100, r: 'game data', on: 'white wf hs soc joc', dd: [2, 2, 'arcane']},
   18410: {no: 'run speed does no damage'},
   18538: {dd: [138, 212, 'fire'], x: 'The bonus against Plants is not counted'},
   19323: {no: 'a stun does no damage'},
   22268: {pct: 8, r: 'measured on Forever', on: 'cast', buff: {sp: 35, dur: 10}, tx: '+35 spell damage'},
-  22321: {ppm: 1.95, r: 'measured on Forever', on: 'white wf hs', dd: [112, 168, 'fire'], x: 'The bonus against Orcs is not counted'},
+  22321: {ppm: 1.95, r: 'measured on Forever', on: 'white wf hs soc joc', dd: [112, 168, 'fire'], x: 'The bonus against Orcs is not counted'},
   260186: {dd: [105, 175, 'shadow']},
-  260205: {ppm: 2.95, r: 'measured on Forever', on: 'white wf hs seal joc cast', dd: [69, 81, 'arcane'], x: 'The bonus against Naga and Satyrs is not counted'},
+  260205: {ppm: 2.95, r: 'measured on Forever', on: 'white wf hs soc sor joc cast', dd: [69, 81, 'arcane'], x: 'The bonus against Naga and Satyrs is not counted'},
   274270: {ppm: 1.1, r: 'measured on Forever', dd: [100, 152, 'nature'], x: 'The bonus against Plants is not counted'},
   275645: {no: 'healing does no damage'},
   279480: {ppm: 1.5, r: 'measured on Forever', dot: [14, 2, 10, 'bleed']},
-  280032: {pct: 15, icd: 3, r: 'game data', on: 'white wf hs seal joc cast how', alt: [{w: 1, s: 'on the target', dd: [60, 60, 'nature']}, {w: 1}], x: 'Half of the procs hit you instead (assumed split)'},
-  280080: {ppm: 1.35, r: 'fitted from Forever logs', on: 'white wf hs', alt: [{w: 1, s: 'Wax', dd: [189, 189, 'arcane']}, {w: 1, s: 'Wane', buff: {str: 40, dur: 10}, tx: '+40 Strength'}]},
+  280032: {pct: 15, icd: 3, r: 'game data', on: 'white wf hs soc sor joc cast how', alt: [{w: 1, s: 'on the target', dd: [60, 60, 'nature']}, {w: 1}], x: 'Half of the procs hit you instead (assumed split)'},
+  280080: {ppm: 1.35, r: 'fitted from Forever logs', on: 'white wf hs soc joc', alt: [{w: 1, s: 'Wax', dd: [189, 189, 'arcane']}, {w: 1, s: 'Wane', buff: {str: 40, dur: 10}, tx: '+40 Strength'}]},
   'e1900': {ppm: 1, r: 'measured on Forever', buff: {str: 100, dur: 15}, tx: '+100 Strength', x: 'The heal is not counted'},
   'e7940': {buff: {str: 120, dur: 20}, tx: '+120 Strength', x: 'The heal is not counted'},
   'e7942': {pct: 7, r: 'game data', on: 'cast judge', buff: {sp: 70, dur: 20}, tx: '+70 spell damage', x: 'The mana is not counted'},
   'e36': {pct: 15, r: 'game data', dd: [9, 13, 'fire'], aoe: 99},
-  's1:4': {pct: 7.2, r: 'fitted from Forever logs', on: 'white wf hs', buff: {haste: 5, dur: 10}, tx: '+5% attack speed', x: 'The doubled chance with no allies near is not counted'},
+  's1:4': {pct: 7.2, r: 'fitted from Forever logs', on: 'white wf hs soc joc', buff: {haste: 5, dur: 10}, tx: '+5% attack speed', x: 'The doubled chance with no allies near is not counted'},
   's123:3': {pct: 10.7, r: 'fitted from Forever logs', on: 'white wf', dot: [7, 1, 10, 'bleed'], sure: true},
-  's141:3': {pct: 10, r: 'game data', on: 'white wf hs', dd: [30, 50, 'fire'], x: 'The game data says 10%, the tooltip 5%'},
-  's142:2': {pct: 10, r: 'game data', on: 'white wf hs', dd: [15, 25, 'nature']},
+  's141:3': {pct: 10, r: 'game data', on: 'white wf hs soc joc', dd: [30, 50, 'fire'], x: 'The game data says 10%, the tooltip 5%'},
+  's142:2': {pct: 10, r: 'game data', on: 'white wf hs soc joc', dd: [15, 25, 'nature']},
   's188:5': {ppm: 0.9, r: 'fitted from Forever logs', on: 'white wf cast cons judge sealcast', buff: {sp: 65, dur: 10}, tx: '+65 spell damage'},
   's1673:4': {ppm: 0.9, r: 'fitted from Forever logs', on: 'white wf cast cons judge sealcast', buff: {sp: 65, dur: 10}, tx: '+65 spell damage'},
   's516:4': {ppm: 0.9, r: 'fitted from Forever logs', on: 'white wf cast cons judge sealcast', buff: {sp: 65, dur: 10}, tx: '+65 spell damage'},
   's187:5': {ppm: 1, r: 'fitted from Forever logs', on: 'white wf cast cons judge sealcast', buff: {sp: 65, dur: 10}, tx: '+65 spell damage'},
-  's2071:2': {pct: 10, r: 'game data', on: 'white wf hs', buff: {ap: 40, dur: 15}, tx: '+40 Attack Power'},
+  's2071:2': {pct: 10, r: 'game data', on: 'white wf hs soc joc', buff: {ap: 40, dur: 15}, tx: '+40 Attack Power'},
   's2130:3': {pct: 15, icd: 45, r: 'game data', on: 'white wf', dd: [140, 140, 'shadow']},
-  's2131:2': {on: 'white wf hs', buff: {str: 50, dur: 10}, tx: '+50 Strength'},
-  's2136:5': {ppm: 1, r: 'measured on Forever', on: 'white wf hs', buff: {crit: 2, dur: 20}, tx: '+2% crit'},
+  's2131:2': {on: 'white wf hs soc joc', buff: {str: 50, dur: 10}, tx: '+50 Strength'},
+  's2136:5': {ppm: 1, r: 'measured on Forever', on: 'white wf hs soc joc', buff: {crit: 2, dur: 20}, tx: '+2% crit'},
   's186:5': {pct: 5, r: 'game data', on: 'white wf', mana: 200},
   's181:5': {pct: 5, r: 'game data', on: 'cast cons judge sealcast', mana: 200},
   's182:5': {pct: 5, r: 'game data', on: 'cast cons judge sealcast', mana: 200},
@@ -923,7 +923,7 @@ const PROCS = {
 };
 // What the fight plays for the worn items' effects. defs: entries of PROCS, each with the name n to show.
 // on: the events that roll it (default: every melee hit). alt: one of several outcomes, picked by weight w.
-const PROC_EV = 'white wf hs seal joc';
+const PROC_EV = 'white wf hs soc sor joc joc2';
 // combat potions: drunk at the pull and again when the potion cooldown is over
 const COMBAT_POTS = {frenzy: {n: 'Major Frenzy Potion', use: {cd: 120}, buff: {ap: 80, dur: 30}, tx: '+80 Attack Power'}, spellblast: {n: 'Major Spellblasting Potion', use: {cd: 120}, buff: {sp: 47, dur: 30}, tx: '+47 spell damage'}};
 function procList(defs, ppm){
@@ -1017,7 +1017,7 @@ function simulate(c, mode, seed, wantLog){
       let d = (lo + (c.sorF0 + c.sorF1 * c.wSpeed) * (hi - lo)) * c.impSeals * holy(t);
       const sc = R() * 100 < c.crit + pCrit(t); if (sc){ d *= 2; onCrit(t); }
       rec('Seal of Righteousness' + tag, d, sc ? 'crit' : 'hit');
-      if (!echo) itemProcs(t, 'seal');
+      if (!echo) itemProcs(t, 'sor');
       if (echo) L(t, `  ↳ SoR echo ${Math.round(d)}`);
     } else if (type === 'soc'){
       if (R() < c.socPPM * c.wSpeed / 60){
@@ -1028,7 +1028,7 @@ function simulate(c, mode, seed, wantLog){
         rec('Seal of Command' + tag, d, res);
         L(t, `  ↳ SoC${tag} proc ${Math.round(d)}${resTxt(res)}`);
         if (res === 'crit') onCrit(t);
-        chili(t); if (!echo) itemProcs(t, 'seal');
+        chili(t); if (!echo) itemProcs(t, 'soc');
       }
     } else if (type === 'fury'){
       const d = (c.furyFlat + c.furyCoef * spNow(t)) * c.impSeals * holy(t);
@@ -1090,7 +1090,7 @@ function simulate(c, mode, seed, wantLog){
     if (r === 'crit') d *= 2;
     rec(name, d, r); L(t, `${name} ${Math.round(d)}${resTxt(r)}`);
     if (r === 'crit') onCrit(t);
-    if (isC){ wf(t); chili(t); itemProcs(t, 'joc'); itemProcs(t, 'joc'); }
+    if (isC){ wf(t); chili(t); itemProcs(t, 'joc'); itemProcs(t, 'joc2'); }
   }
 
   function castSeal(type, t){
@@ -1199,7 +1199,7 @@ function simulate(c, mode, seed, wantLog){
   function itemProcs(t, ev){
     for (let i = 0; i < PR.length; i++){
       const x = PR[i], p = x.p;
-      if (ev !== 'joc' && ev !== 'chain' && ev !== 'sealcast'){
+      if (ev !== 'joc' && ev !== 'joc2' && ev !== 'chain' && ev !== 'sealcast'){
         if (x.need > 0){ if (t > x.needEnd) x.need = 0; else if (--x.need === 0){ x.n--; pFire(x, t, 'after'); } }
         if (p.stack && t < x.up && ev !== 'white' && ev !== 'wf' && x.stk < p.stack.max) x.stk++;
       }
@@ -2205,7 +2205,7 @@ function gearProcs(v){
 }
 // what the sim does with an effect, for the tooltips
 const PROC_SCHOOL = {phys:'Physical', physical:'Physical', bleed:'bleed', fire:'Fire', shadow:'Shadow', nature:'Nature', arcane:'Arcane', frost:'Frost'};
-const PROC_EVENT = {white:'white hits', wf:'Windfury', hs:'Holy Strike', seal:'seal hits', joc:'Judgement of Command', cast:'Exorcism and Holy Shock', cons:'Consecration', how:'Hammer of Wrath', judge:'Judgement', sealcast:'seal casts'};
+const PROC_EVENT = {white:'white hits', wf:'Windfury', hs:'Holy Strike', soc:'Seal of Command strikes', sor:'Seal of Righteousness hits', joc:'Judgement of Command', joc2:'', cast:'Exorcism and Holy Shock', cons:'Consecration', how:'Hammer of Wrath', judge:'Judgement', sealcast:'seal casts'};
 function procEffect(p){
   const parts = [];
   if (p.dd) parts.push((p.dd[0] === p.dd[1] ? p.dd[0] : p.dd[0] + '–' + p.dd[1]) + ' ' + PROC_SCHOOL[p.dd[2]] + ' damage' + (p.exec ? ' (×' + p.exec[1] + ' below ' + p.exec[0] + '% health)' : ''));
@@ -2226,7 +2226,7 @@ function procNote(p){
     : p.ppm ? p.ppm + (p.ppm === 1 ? ' proc' : ' procs') + ' per minute (' + p.r + ')' : 'No rate is known: the rate under Assumptions is used';
   const ev = (p.on || PROC_EV).split(' ').map(e => PROC_EVENT[e]);
   if (p.use) return 'Counts in the sim: ' + what + '. Used at the pull' + (p.use.need ? ' once ' + p.use.need + ' mana is missing' : '') + ' and again every ' + (p.use.cd >= 120 ? p.use.cd / 60 + ' min' : p.use.cd + ' s') + (p.use.lock ? '; your other on-use trinket waits ' + p.use.lock + ' s' : '') + (p.x ? '. ' + p.x : '') + '.';
-  return 'Counts in the sim: ' + what + '. ' + rate + ', rolled on ' + (p.on ? ev.join(', ') : 'every melee hit') + (p.x ? '. ' + p.x : '') + '.';
+  return 'Counts in the sim: ' + what + '. ' + rate + ', rolled on ' + (p.on ? ev.filter(Boolean).join(', ') : 'every melee hit, seal hits included, and twice on Judgement of Command') + (p.x ? '. ' + p.x : '') + '.';
 }
 function applyGear(v){
   const g = gearTotals();
@@ -3020,7 +3020,7 @@ renderRotation();
   const p = document.querySelector('[data-panel="assumptions"]');
   if (p){ if (!p.hidden && typeof showTab === 'function') showTab('gear'); p.hidden = true; p.setAttribute('aria-hidden', 'true'); }
   // fixed gear presets, shown above the viewer's own saved sets
-  const PRESETS = {"Arcanite Reaper, Soulforge":{"gear":{"Main Hand":12784,"Head":12640,"Neck":15411,"Shoulders":22093,"Back":272414,"Chest":11726,"Wrists":22088,"Trinket 2":11815,"Hands":22090,"Waist":22086,"Legs":22092,"Feet":22087,"Finger 2":284715,"Trinket 1":272437,"Libram":272435},"enchants":{"Head":"Lesser Arcane Amalgamation: +8 Strength","Back":"Agility","Chest":"Greater Stats","Wrists":"Superior Strength","Hands":"Superior Strength","Legs":"Lesser Arcane Amalgamation: +8 Strength","Feet":"Greater Agility"},"mode":"socSor"},"The Unstoppable Force":{"gear":{"Head":12640,"Neck":15411,"Shoulders":12927,"Back":272414,"Chest":252484,"Wrists":12936,"Hands":15063,"Waist":272404,"Legs":15062,"Feet":287033,"Trinket 1":272437,"Trinket 2":11815,"Main Hand":19323,"Libram":272435,"Finger 2":284715},"enchants":{"Head":"Lesser Arcane Amalgamation: +8 Strength","Chest":"Forceful Rugged Armor Kit","Legs":"Lesser Arcane Amalgamation: +8 Strength","Feet":"Greater Agility","Back":"Agility","Wrists":"Superior Strength","Hands":"Superior Strength"},"mode":"socSor"},"Blade of Hanna, spell power":{"gear":{"Head":250599,"Neck":22403,"Back":272411,"Shoulders":22093,"Chest":252483,"Wrists":22088,"Main Hand":2801,"Hands":22090,"Waist":22086,"Legs":252486,"Feet":11822,"Finger 1":22433,"Finger 2":12543,"Trinket 1":22268,"Trinket 2":272437,"Libram":272435},"enchants":{"Head":"Arcanum of Focus: +8 Healing","Back":"Agility","Chest":"Greater Stats","Wrists":"Greater Spellpower","Hands":"Holy Power","Legs":"Arcanum of Focus: +8 Healing","Feet":"Mystic Rugged Armor Kit"},"mode":"sorFury"}};
+  const PRESETS = {"Arcanite Reaper, Soulforge":{"gear":{"Main Hand":12784,"Head":12640,"Neck":15411,"Shoulders":22093,"Back":272414,"Chest":11726,"Wrists":22088,"Trinket 2":11815,"Hands":22090,"Waist":22086,"Legs":22092,"Feet":22087,"Finger 2":284715,"Trinket 1":272437,"Libram":272435,"Finger 1":19325},"enchants":{"Head":"Lesser Arcane Amalgamation: +8 Strength","Back":"Agility","Chest":"Greater Stats","Wrists":"Superior Strength","Hands":"Superior Strength","Legs":"Lesser Arcane Amalgamation: +8 Strength","Feet":"Greater Agility","Main Hand":"Crusader"},"mode":"socSor"},"The Unstoppable Force":{"gear":{"Head":12640,"Neck":15411,"Shoulders":12927,"Back":272414,"Chest":252484,"Wrists":12936,"Hands":15063,"Waist":272404,"Legs":15062,"Feet":287033,"Trinket 1":272437,"Trinket 2":11815,"Main Hand":19323,"Libram":272435,"Finger 2":284715,"Finger 1":19325},"enchants":{"Head":"Lesser Arcane Amalgamation: +8 Strength","Chest":"Forceful Rugged Armor Kit","Legs":"Lesser Arcane Amalgamation: +8 Strength","Feet":"Greater Agility","Back":"Agility","Wrists":"Superior Strength","Hands":"Superior Strength"},"mode":"socSor"},"Blade of Hanna, spell power":{"gear":{"Head":250599,"Neck":22403,"Back":272411,"Shoulders":22093,"Chest":252483,"Wrists":22088,"Main Hand":2801,"Hands":22090,"Waist":22086,"Legs":252486,"Feet":11822,"Finger 1":22433,"Finger 2":12543,"Trinket 1":22268,"Trinket 2":272437,"Libram":272435},"enchants":{"Head":"Arcanum of Focus: +8 Healing","Back":"Agility","Chest":"Greater Stats","Wrists":"Greater Spellpower","Hands":"Holy Power","Legs":"Arcanum of Focus: +8 Healing","Feet":"Mystic Rugged Armor Kit"},"mode":"sorFury"}};
   const names = Object.keys(PRESETS); if (!names.length) return;
   const side = document.querySelector('.gearside'), first = side && side.querySelector('h3'); if (!first) return;
   const h = document.createElement('h3'); h.textContent = 'Preset Gear Sets';
