@@ -60,8 +60,10 @@ if (s.split(mark).length !== 2){ console.error('expected exactly one </style> in
 s = s.replace(mark, '#copy-setup,[data-tab="assumptions"]{display:none}\n#gp-pills{margin:2px 0 10px}\n</style>');
 // the artifact platform wrapped the page in a document skeleton; a plain host needs it in the file
 if (!/^\s*<!doctype html>/i.test(s)){
-  s = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<style>html,body{margin:0;padding:0}[hidden]:not([hidden=until-found i]){display:none!important}</style>\n</head>\n<body>\n' + s + '\n</body>\n</html>\n';
+  s = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<link rel="icon" type="image/jpeg" href="favicon.jpg">\n<style>html,body{margin:0;padding:0}[hidden]:not([hidden=until-found i]){display:none!important}</style>\n</head>\n<body>\n' + s + '\n</body>\n</html>\n';
 }
 fs.mkdirSync(outDir, {recursive:true});
+// the tab icon: Seal of Command, next to the page
+if (fs.existsSync(path.join(__dirname, 'favicon.jpg'))) fs.copyFileSync(path.join(__dirname, 'favicon.jpg'), path.join(outDir, 'favicon.jpg'));
 fs.writeFileSync(out, s);
 console.log('built', path.relative(__dirname, out), (s.length / 1e6).toFixed(2) + ' MB', '| presets:', Object.keys(presets).join(', ') || 'none');

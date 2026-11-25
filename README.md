@@ -10,6 +10,7 @@ The whole simulator is one HTML file that runs in the browser. There is no serve
 | `ret-sim.html` | The working version. Interface, simulation engine, item and enchant data and icons, all in one file. This is the file to edit. |
 | `public_presets.json` | Gear sets shown as fixed "Preset Gear Sets" buttons in the public version. |
 | `build.js` | Builds the public site: `node build.js docs` writes `docs/index.html`. |
+| `favicon.jpg` | The tab icon (Seal of Command). The build copies it next to the page and links it. |
 | `docs/index.html` | The built public site. GitHub Pages serves this folder. Rebuild and commit it with every change. |
 | `vercel.json` | Only used if the site is hosted on Vercel: runs the build and serves the `public` folder. |
 
@@ -82,6 +83,10 @@ Vercel works as an alternative: import the repository and it uses `vercel.json`.
 - **Import > Addon** reads the export code of the in-game addon ([PaladinSIMAddon](https://github.com/alanzyr/PaladinSIMAddon),
   `/rsim export`): `RSA1:` + base64 of JSON with items by the game's inventory slot number (`id`, `enchant`), the talent
   string, race and rotation. Enchants are matched by their id (`e` in `ENCHANTS`).
+- **Export > Wowhead** writes the same kind of link from what is equipped (`ieWowheadCode`, `ieWowheadLink`). Checked by
+  taking a real link apart and putting it together again: the text comes out the same. Three fields of the format are
+  not understood and are written as that link had them. Enchants whose Wowhead spell id is not known are named in the
+  dialog, because Wowhead may not show them.
 - **Export > Addon gear list** makes a code of what is equipped for the addon's gear list: `RSG1:` + base64 of JSON
   `{ v: 1, name, items: [{ s: inventory slot, id, n, q, src, e: enchant name, ei: enchant id }] }` (`ieGearListCode`). The
   addon shows each piece, where it comes from (the item's `src`) and whether you wear or carry it.

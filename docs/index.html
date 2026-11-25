@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" type="image/jpeg" href="favicon.jpg">
 <style>html,body{margin:0;padding:0}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 </head>
 <body>
@@ -2908,6 +2909,49 @@ function ieWowhead(text){
   if (notes.length) r.note = notes.join(' ');
   return r;
 }
+// The other way: a gear planner link from a description {race, talStr, items: [{slot: Wowhead's slot number, id, spell}]}.
+// The enchant spells Wowhead uses where they differ from this sim's data (WH_ENCH the other way), by enchant id and slot.
+const WH_ENCH_OUT = {'1900|Main Hand':20034, '1891|Chest':20025, '1887|Feet':20023, '2543|Head':22840, '2543|Legs':22840};
+function ieWowheadCode(o){
+  const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  const out = [];
+  // one integer: k leading 1-bits in the first value say that k more values follow; each length starts where the shorter one ends
+  const num = v => {
+    let k = 0, base = 0, span = 32;
+    while (v >= base + span){ base += span; span *= 32; k++; }
+    let x = v - base;
+    const parts = [];
+    for (let i = 0; i < k; i++){ parts.unshift(x % 64); x = Math.floor(x / 64); }
+    out.push(((63 << (6 - k)) & 63) | x, ...parts);
+  };
+  num(16); num(1); num(60);             // the leading number of the format, gender, level
+  const trees = String(o.talStr || '').split('-');
+  for (let t = 0; t < 3; t++){
+    const d = trees[t] || '';
+    num(d.length);
+    for (let i = 0; i < d.length; i += 7){ let v = 0; for (const ch of d.slice(i, i + 7)) v = v * 8 + (+ch); num(v); }
+  }
+  const block = 'vkndmh';               // a block this sim does not understand, as in the link the format was read from
+  num(block.length); for (const ch of block) out.push(ABC.indexOf(ch));
+  num(0);
+  const items = o.items.slice().sort((a, b) => a.slot - b.slot);
+  num(items.length);
+  for (const it of items){ num(it.spell ? 1 : 0); num(it.slot); num(it.id); if (it.spell) num(it.spell); }
+  return 'F' + out.map(v => ABC[v]).join('');
+}
+function ieWowheadLink(){
+  const slotOf = Object.fromEntries(Object.entries(WH_SLOT).map(([wh, i]) => [IE_SLOTS[i], +wh]));
+  const items = [], unsure = [];
+  for (const k of Object.keys(gear)){
+    const slot = slotOf[k]; if (!slot) continue;
+    const e = ench[k]; let spell = 0;
+    if (e){ spell = WH_ENCH_OUT[e.e + '|' + slotType(k)] || e.sp || 0; if (!spell || (!WH_ENCH_OUT[e.e + '|' + slotType(k)] && e.sp < 100000)) unsure.push(k + ': ' + e.n.replace(/^Enchant: /, '')); }
+    items.push({slot, id: gear[k].id, spell});
+  }
+  if (!items.length) return {url: '', unsure};
+  const race = document.getElementById('f6-race').value;
+  return {url: 'https://www.wowhead.com/forever/gear-planner/paladin/' + race + '/' + ieWowheadCode({talStr: talEncode(), items}), unsure};
+}
 // Reads any supported text and returns one neutral description of what it holds.
 async function ieParse(text){
   text = String(text || '').trim();
@@ -3062,6 +3106,7 @@ function ieApply(r){
     imp60u:{t:'Sixty Upgrades Import', imp:1, d:'Import from Sixty Upgrades. This reads gear, enchants, race and talents. It does not change buffs, debuffs, consumables or other settings. Paste the output of the site\u2019s export option below and click Import.'},
     expJson:{t:'JSON Export', d:'The gear, talents, race, buffs, consumables and encounter are written in the wowsims layout, so the text can also be pasted into the wowsims JSON import. This sim\u2019s own settings travel in the "retSim" block.'},
     expCode:{t:'Share Code Export', d:'The same content as the JSON export, packed into one short line. Paste it into Import \u2192 JSON to load it.'},
+    expWh:{t:'Wowhead Gear Planner Export', plain:1, d:'A link that opens your gear, enchants, race and talents in Wowhead\u2019s gear planner. Copy it and open it in your browser, or share it. Buffs, consumables and other settings are not part of a Wowhead link.'},
     expList:{t:'Addon Gear List Export', plain:1, d:'The gear you have equipped here as a list for the Forever Ret Sim addon: each piece, where it comes from and the enchant on it. In the game, press Import in the addon\u2019s window (or type /rsim import), paste the code and press Import; /rsim list then shows the pieces and marks the ones you already wear or carry.'},
     expAddon:{t:'Addon Settings Export', plain:1, d:'Your raid buffs and debuffs, consumables, encounter and rotation as a code for the Forever Ret Sim addon. In the game, press Import in the addon\u2019s window (or type /rsim import), paste the code and press Import. Gear and talents are not in it: the addon reads those from your character.'},
   };
@@ -3072,6 +3117,7 @@ function ieApply(r){
   async function fill(){
     if (KINDS[kind].imp) return;
     if (kind === 'expAddon'){ ta.value = ieSettingsCode(); say(''); return; }
+    if (kind === 'expWh'){ const w = ieWowheadLink(); ta.value = w.url; say(!w.url ? 'No gear is equipped, so there is nothing to link.' : w.unsure.length ? 'Wowhead may not show these enchants, because its id for them is not known here: ' + w.unsure.join('; ') + '.' : Object.keys(gear).length + ' items in the link.', !w.url); return; }
     if (kind === 'expList'){ ta.value = ieGearListCode(); say(ta.value ? Object.keys(gear).length + ' pieces in the list.' : 'No gear is equipped, so there is nothing to list.', !ta.value); return; }
     const o = ieBuild(cats());
     ta.value = kind === 'expCode' ? await iePack(JSON.stringify(o)) : iePretty(o);
@@ -3081,12 +3127,12 @@ function ieApply(r){
     kind = k; const K = KINDS[k];
     $('#ie-title').textContent = K.t; $('#ie-desc').textContent = K.d;
     catsBox.hidden = !!K.imp || !!K.plain; $('#ie-upload').hidden = !K.imp; $('#ie-go').hidden = !K.imp; $('#ie-copy').hidden = !!K.imp;
-    ta.readOnly = !K.imp; ta.value = ''; { const line = k === 'expCode' || k === 'expAddon' || k === 'expList'; ta.rows = line ? 6 : 14; ta.style.whiteSpace = line ? 'pre-wrap' : ''; ta.style.wordBreak = line ? 'break-all' : ''; }
+    ta.readOnly = !K.imp; ta.value = ''; { const line = k === 'expCode' || k === 'expAddon' || k === 'expList' || k === 'expWh'; ta.rows = line ? 6 : 14; ta.style.whiteSpace = line ? 'pre-wrap' : ''; ta.style.wordBreak = line ? 'break-all' : ''; }
     say('');
     await fill();
     dlg.showModal(); ta.focus(); if (!K.imp){ ta.select(); ta.scrollTop = 0; }
   }
-  const MENUS = {'ie-imp':[['impJson', 'JSON'], ['impAddon', 'Addon'], ['impWh', 'Wowhead'], ['imp60u', '60U']], 'ie-exp':[['expJson', 'JSON'], ['expCode', 'Share code'], ['expAddon', 'Addon settings'], ['expList', 'Addon gear list']]};
+  const MENUS = {'ie-imp':[['impJson', 'JSON'], ['impAddon', 'Addon'], ['impWh', 'Wowhead'], ['imp60u', '60U']], 'ie-exp':[['expJson', 'JSON'], ['expCode', 'Share code'], ['expAddon', 'Addon settings'], ['expList', 'Addon gear list'], ['expWh', 'Wowhead link']]};
   let openFor = null;
   const closeMenu = focusBack => { if (!openFor) return; const b = $('#' + openFor); b.setAttribute('aria-expanded', 'false'); menu.hidden = true; openFor = null; if (focusBack) b.focus(); };
   for (const id in MENUS) $('#' + id).addEventListener('click', e => {
