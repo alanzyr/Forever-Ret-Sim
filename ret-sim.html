@@ -2516,7 +2516,7 @@ function gsRender(){
   gsSync();
 }
 // the saved set that is exactly what is equipped now, if any
-const gsRotName = m => { const f = FIELDS.find(x => x.k === 'mode'); if (!m || !f.o.some(o => o[0] === m)) return ''; return (typeof ROT_INFO !== 'undefined' && ROT_INFO[m]) ? ROT_INFO[m][0] : m; };
+const gsRotName = m => { const f = FIELDS.find(x => x.k === 'mode'); if (!m || !f.o.some(o => o[0] === m)) return ''; try { return ROT_INFO[m] ? ROT_INFO[m][0] : m; } catch (e) { return m; } };
 function gsCurrent(){
   const sets = gsRead(), cur = {}; for (const k in gear) cur[k] = gear[k].id;
   const ce = {}; for (const k in ench) ce[k] = ench[k].n;
@@ -2573,14 +2573,7 @@ function initGear(){
   $('#gear-clear').addEventListener('click', () => { gear = {}; ench = {}; gearChanged(); });
 }
 
-buildForm();
-initTalents();
-initGear();
-
-/* ===== icon pickers for consumables, toggles for buffs, rotation buttons ===== */
-const CONS_ROWS = [['Flask', ['flask']], ['Potions', ['combatPot', 'potions', 'runes']], ['Elixirs', ['elixStr', 'elixAgi', 'elixInt', 'elixSpi', 'elixAp', 'elixSp', 'elixHoly', 'elixMp5', 'phalanx']],
-  ['Blasted Lands', ['blasted']], ['Food', ['food', 'chili', 'grog']], ['Weapon', ['oil']], ['Explosives', ['sapper']]];
-const BUFF_KEYS = ['kings', 'might', 'bow', 'battleShout', 'lotp', 'wfTotem', 'soe', 'goa', 'motw', 'arcInt', 'moonkin'], PARTY_KEYS = ['manaSpring', 'manaTide', 'bloodPact'];
+// the rotation names: needed while the saved gear sets are drawn, so they come before the page is set up
 const ROT_INFO = {
   auto:['Best twist (auto)', 'Tries the three seal twists on your setup each time you simulate and uses the one that does the most damage.'],
   socSor:['3× SoC → SoR', 'Three swings with Seal of Command, then one swing with Seal of Righteousness to release the stored copies. Suits slow weapons, 3.3 s and up.'],
@@ -2590,6 +2583,15 @@ const ROT_INFO = {
   sorOnly:['SoR only', 'Seal of Righteousness for the whole fight with no seal swapping.'],
   shock:['Shockadin', 'Seal of Righteousness with Holy Shock on cooldown. Needs the Holy Shock talent.'],
 };
+
+buildForm();
+initTalents();
+initGear();
+
+/* ===== icon pickers for consumables, toggles for buffs, rotation buttons ===== */
+const CONS_ROWS = [['Flask', ['flask']], ['Potions', ['combatPot', 'potions', 'runes']], ['Elixirs', ['elixStr', 'elixAgi', 'elixInt', 'elixSpi', 'elixAp', 'elixSp', 'elixHoly', 'elixMp5', 'phalanx']],
+  ['Blasted Lands', ['blasted']], ['Food', ['food', 'chili', 'grog']], ['Weapon', ['oil']], ['Explosives', ['sapper']]];
+const BUFF_KEYS = ['kings', 'might', 'bow', 'battleShout', 'lotp', 'wfTotem', 'soe', 'goa', 'motw', 'arcInt', 'moonkin'], PARTY_KEYS = ['manaSpring', 'manaTide', 'bloodPact'];
 const uiField = k => FIELDS.find(f => f.k === k), uiEl = k => document.getElementById('f6-' + k);
 const uiSplit = l => { const m = l.match(/^(.*?) \((.*)\)$/); return m ? [m[1], m[2]] : [l, '']; };
 const uiSet = (k, val) => { const el = uiEl(k); if (uiField(k).t === 'chk') el.checked = val; else el.value = val; el.dispatchEvent(new Event('change')); };
