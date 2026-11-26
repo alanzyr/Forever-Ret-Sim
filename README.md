@@ -75,6 +75,8 @@ Vercel works as an alternative: import the repository and it uses `vercel.json`.
   the same table and the same code (`tools/check-ret-engine.js` in the addon repository compares them fight by fight).
 - **Layout follows wowsims.com/forever**: settings in columns, icon pickers for consumables, round buttons for saved sets,
   encounters and rotations. Interface text is English and short.
+- **Middle click opens Wowhead.** Every element that shows an item carries `data-item` (`<id>|<slot type>`). A middle
+  click on one opens `https://www.wowhead.com/forever/item=<id>` in a new tab (`itemMiddle`, one listener on the document).
 - **Random seed per run.** Each press of Simulate, Stat Weights or Compare Rotations draws a new seed; comparisons within
   one run share it.
 - **Gear sets** store item ids, enchant names and the rotation selected when saved (`_ench`, `_mode`).

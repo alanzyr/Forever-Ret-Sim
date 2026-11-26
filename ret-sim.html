@@ -616,6 +616,10 @@ ol.prio li{margin:5px 0;max-width:80ch}
 <div id="tip" hidden></div>
 
 <script>
+// A middle click on anything that shows an item opens that item on Wowhead in a new tab.
+const itemMiddle = e => { if (e.button !== 1) return null; const el = e.target.closest && e.target.closest('[data-item]'); const id = el ? parseInt(el.dataset.item, 10) : 0; return id > 0 ? id : null; };
+document.addEventListener('mousedown', e => { if (itemMiddle(e)) e.preventDefault(); });
+document.addEventListener('auxclick', e => { const id = itemMiddle(e); if (!id) return; e.preventDefault(); window.open('https://www.wowhead.com/forever/item=' + id, '_blank', 'noopener'); });
 /* ===== ENGINE START ===== */
 const FIELDS = [
   // g: group
